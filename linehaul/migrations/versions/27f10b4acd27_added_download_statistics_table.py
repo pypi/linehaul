@@ -32,7 +32,8 @@ from sqlalchemy.sql import func
 
 
 def upgrade():
-    op.create_table('downloads',
+    op.create_table(
+        'downloads',
         sa.Column(
             'id',
             postgresql.UUID(),
