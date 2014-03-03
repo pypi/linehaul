@@ -1,0 +1,9 @@
+include AUTHORS
+include LICENSE
+include README.rst
+include tox.ini
+include dev-requirements.txt
+include .coveragerc
+
+recursive-include tests *.py
+recursive-include tests *.yml

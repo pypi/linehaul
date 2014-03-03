@@ -1,0 +1,6 @@
+# Install Linehaul itself
+-e .
+
+# Install our development requirements
+tox
+wheel

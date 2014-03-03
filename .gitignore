@@ -1,0 +1,36 @@
+*.py[co]
+
+# Packages
+*.egg
+*.egg-info
+dist
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+node_modules
+htmlcov
+.wake.json
+.sass-cache
+
+# Documentation build directory
+docs/_build
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+.cache
+
+# Developer local files
+data/
+.pyrax.cfg
+.rackspace.json
+warehouse.key
+.venv
