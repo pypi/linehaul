@@ -47,10 +47,17 @@ setup(
         "alchimia",
         "alembic",
         "psycopg2cffi",
+        "PyYAML",
         "Twisted",
         "SQLAlchemy",
         "sqlalchemy-citext>=1.2.0",
     ],
+
+    entry_points={
+        "console_scripts": [
+            "linehaul = linehaul.__main__:main",
+        ],
+    },
 
     zip_safe=False,
 )

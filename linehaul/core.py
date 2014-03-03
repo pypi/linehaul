@@ -18,14 +18,7 @@ from __future__ import (
 import json
 import logging
 
-import alchimia
-
-import sqlalchemy
-
-from twisted.internet.defer import Deferred
-from twisted.internet.endpoints import StandardIOEndpoint
 from twisted.internet.protocol import Factory
-from twisted.internet.task import react
 from twisted.protocols.basic import LineOnlyReceiver
 
 from linehaul.helpers import parse_log_line
@@ -86,32 +79,3 @@ class FastlySyslogProtocolFactory(Factory):
             DownloadStatisticsModels(self._engine),
             self._finished,
         )
-
-
-class TwistedCommand(object):
-    def __init__(self, main_func, reactor=None):
-        self._main_func = main_func
-        self._reactor = reactor
-
-    def __call__(self, app):
-        react(self._main_func, [app], _reactor=self._reactor)
-
-
-def process_logs_main(reactor, app):
-    finished = Deferred()
-
-    download_statistic_engine = sqlalchemy.create_engine(
-        app.config.database.download_statistics_url,
-        strategy=alchimia.TWISTED_STRATEGY,
-        reactor=reactor
-    )
-    endpoint = StandardIOEndpoint(reactor)
-    endpoint.listen(
-        FastlySyslogProtocolFactory(download_statistic_engine, finished),
-    )
-    return finished
-
-
-__commands__ = {
-    "process-logs": TwistedCommand(process_logs_main),
-}
