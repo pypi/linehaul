@@ -55,7 +55,7 @@ def _database_url(request):
             return name not in [r[0] for r in results]
 
     database_url_default = 'postgresql://localhost/test_linehaul'
-    database_url_environ = os.environ.get("LINEHOUSE_DATABASE_URL")
+    database_url_environ = os.environ.get("LINEHAUL_DATABASE_URL")
     database_url_option = request.config.getvalue("database_url")
 
     if (not database_url_default and not database_url_environ
