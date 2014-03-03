@@ -28,14 +28,10 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.sql import func
 
-from twisted.internet.defer import succeed
 from twisted.python.failure import Failure
 
 from linehaul import tables
-from linehaul.cli import (
-    TwistedCommand, FastlySyslogProtocol, FastlySyslogProtocolFactory,
-    process_logs_main
-)
+from linehaul.core import FastlySyslogProtocol, FastlySyslogProtocolFactory
 from linehaul.helpers import (
     ParsedUserAgent, ParsedLogLine, parse_useragent, parse_log_line,
     compute_version, compute_distribution_type
@@ -557,31 +553,3 @@ class TestFastlySyslog(object):
         factory = FastlySyslogProtocolFactory(engine, None)
         protocol = factory.buildProtocol(None)
         assert protocol._models._engine is engine
-
-    def test_main(self, _database_url):
-        app = pretend.stub(
-            config=pretend.stub(
-                database=pretend.stub(
-                    download_statistics_url=_database_url
-                )
-            )
-        )
-        fake_reactor = pretend.stub()
-        process_logs_main(fake_reactor, app)
-
-    def test_twisted_command(self):
-        @pretend.call_recorder
-        def main(reactor, app):
-            return succeed(None)
-
-        app = pretend.stub()
-        reactor = pretend.stub(
-            addSystemEventTrigger=lambda when, event, f, *args, **kwargs: None,
-            run=lambda: None,
-        )
-        command = TwistedCommand(main, reactor=reactor)
-        with pytest.raises(SystemExit) as exc_info:
-            command(app)
-        assert exc_info.value.code == 0
-
-        assert main.calls == [pretend.call(reactor, app)]

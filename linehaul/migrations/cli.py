@@ -18,106 +18,56 @@ import alembic.config
 import alembic.command
 
 
-class AlembicCommand(object):
+def _create_alembic_config(database_url):
+    alembic_cfg = alembic.config.Config()
+    alembic_cfg.set_main_option("script_location", "linehaul:migrations")
+    alembic_cfg.set_main_option("url", database_url)
 
-    def __call__(self, app, *args, **kwargs):
-        cfg = self._create_alembic_config(app)
-        return self.command.__func__(cfg, *args, **kwargs)
-
-    def _create_alembic_config(self, app):
-        alembic_cfg = alembic.config.Config()
-        alembic_cfg.set_main_option(
-            "script_location",
-            "warehouse:migrations",
-        )
-        alembic_cfg.set_main_option("url", app.config.database.url)
-
-        return alembic_cfg
+    return alembic_cfg
 
 
-class BranchesCommand(AlembicCommand):
-
-    command = alembic.command.branches
-
-
-class CurrentCommand(AlembicCommand):
-
-    command = alembic.command.current
-
-    def create_parser(self, parser):
-        parser.add_argument(
-            "--head-only",
-            action="store_true",
-            dest="head_only",
-            help=("Only show current version and whether or not this is the "
-                  "head revision."),
-        )
+def upgrade(config, revision):
+    return alembic.command.upgrade(
+        _create_alembic_config(config["database"]),
+        revision=revision,
+    )
 
 
-class DowngradeCommand(AlembicCommand):
-
-    command = alembic.command.downgrade
-
-    def create_parser(self, parser):
-        parser.add_argument(
-            "revision",
-            help="revision identifier",
-        )
+def branches(config):
+    return alembic.command.branches(_create_alembic_config(config["database"]))
 
 
-class HistoryCommand(AlembicCommand):
-
-    command = alembic.command.history
-
-    def create_parser(self, parser):
-        parser.add_argument(
-            "-r", "--rev-range",
-            dest="rev_range",
-            help="Specify a revision range; format is [start]:[end]",
-        )
+def stamp(config, revision):
+    return alembic.command.stamp(
+        _create_alembic_config(config["database"]),
+        revision=revision,
+    )
 
 
-class RevisionCommand(AlembicCommand):
-
-    command = alembic.command.revision
-
-    def create_parser(self, parser):
-        parser.add_argument(
-            "-m", "--message",
-            dest="message",
-            help="Message string to use with 'revision'",
-        )
-        parser.add_argument(
-            "-a", "--autogenerate",
-            action="store_true",
-            dest="autogenerate",
-            help=("Populate revision script with candidate migration "
-                  "operations, based on comparison of database to model."),
-        )
+def current(config, head_only):
+    return alembic.command.current(
+        _create_alembic_config(config["database"]),
+        head_only=head_only,
+    )
 
 
-class StampCommand(AlembicCommand):
-
-    command = alembic.command.stamp
-
-    def create_parser(self, parser):
-        parser.add_argument("revision", help="revision identifier")
-
-
-class UpgradeCommand(AlembicCommand):
-
-    command = alembic.command.upgrade
-
-    def create_parser(self, parser):
-        parser.add_argument("revision", help="revision identifier")
+def downgrade(config, revision):
+    return alembic.command.downgrade(
+        _create_alembic_config(config["database"]),
+        revision=revision,
+    )
 
 
-__commands__ = {
-    "branches": BranchesCommand(),
-    "current": CurrentCommand(),
-    "downgrade": DowngradeCommand(),
-    "history": HistoryCommand(),
-    "revision": RevisionCommand(),
-    "stamp": StampCommand(),
-    "upgrade": UpgradeCommand(),
-}
+def history(config, rev_range):
+    return alembic.command.history(
+        _create_alembic_config(config["database"]),
+        rev_range=rev_range,
+    )
+
+
+def revision(config, message, autogenerate):
+    return alembic.command.revision(
+        _create_alembic_config(config["database"]),
+        message=message,
+        autogenerate=autogenerate,
+    )
