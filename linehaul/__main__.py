@@ -16,6 +16,7 @@ from __future__ import (
 )
 
 import argparse
+import logging.config
 
 import alchimia
 import yaml
@@ -129,6 +130,9 @@ def main():
             config = yaml.safe_load(fp.read())
     else:
         config = {}
+
+    # Configure Logging
+    logging.config.dictConfig(config["logging"])
 
     return args._func(
         config,
