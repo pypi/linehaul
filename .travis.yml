@@ -1,0 +1,34 @@
+language: python
+python: 2.7
+
+addons:
+  postgresql: 9.3
+
+env:
+    global:
+        - LINEHAUL_DATABASE_URL=postgresql://postgres@localhost/linehaul
+    matrix:
+        - TOXENV=py27
+        - TOXENV=pypy
+        - TOXENV=pep8
+
+install:
+    - pip install tox
+
+before_script:
+    - psql --version
+    - psql -c "CREATE DATABASE linehaul ENCODING 'UTF8';" -U postgres
+
+script:
+    - tox
+
+branches:
+    only:
+        - master
+
+notifications:
+    irc:
+        channels:
+            - "irc.freenode.org#warehouse"
+        use_notice: true
+        skip_join: true
