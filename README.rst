@@ -12,5 +12,5 @@ Linehaul is a statistics collection daemon for incoming logs from Fastly for
 Resources
 ---------
 
-* `IRC <http://webchat.freenode.net?channels=%23warehouse>`_
-  (#warehouse - irc.freenode.net)
+* `IRC <http://webchat.freenode.net?channels=%23pypa-dev>`_
+  (#pypa-dev - irc.freenode.net)
