@@ -24,13 +24,13 @@ async def p(message):
 
 
 @click.command(cls=AsyncCommand)
+@click.option("--bind", default="0.0.0.0")
+@click.option("--port", type=int, default=512)
+@click.option("--token")
 @click.pass_context
-async def main(ctx):
-    server = await ctx.event_loop.create_server(
-        SyslogProtocol(p, token=b"NOPE", loop=ctx.event_loop),
-        "0.0.0.0",
-        4444,
-    )
+async def main(ctx, bind, port, token):
+    protocol = SyslogProtocol(p, token=token, loop=ctx.event_loop)
+    server = await ctx.event_loop.create_server(protocol, bind, port)
 
     cancelled = False
     try:

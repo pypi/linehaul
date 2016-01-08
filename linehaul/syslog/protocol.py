@@ -50,7 +50,7 @@ class _SyslogProtocol(LineProtocol):
 
     def __init__(self, handler, *, token=None, loop=None):
         self.handler = handler
-        self.token = token
+        self.token = token.encode("utf8")  # We always assume utf8
         self.loop = loop
 
     def line_received(self, line):
