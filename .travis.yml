@@ -3,14 +3,14 @@ python: 3.5.1
 
 env:
   matrix:
-    - TOXENV=py35
-    - TOXENV=pep8
+    - TARGET=tests
+    - TARGET=lint
 
 before_install: pip install codecov
 
-install: pip install tox
+install: pip install -r requirements.txt -r requirements-dev.txt
 
-script: tox
+script: make $TARGET
 
 after_success: codecov
 
