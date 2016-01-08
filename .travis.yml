@@ -1,0 +1,22 @@
+language: python
+python: 3.5.1
+
+env:
+  matrix:
+    - TOXENV=py35
+    - TOXENV=pep8
+
+install: pip install tox
+
+script: tox
+
+branches:
+  only:
+    - master
+
+notifications:
+  irc:
+    channels:
+      - "irc.freenode.org#warehouse"
+    use_notice: true
+    skip_join: true

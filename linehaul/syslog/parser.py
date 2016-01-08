@@ -98,7 +98,7 @@ def parse(message):
         raise ValueError(str(exc)) from None
 
     data = {}
-    data["facility"] = int(parsed.priority/8)
+    data["facility"] = int(parsed.priority / 8)
     data["severity"] = parsed.priority - (data["facility"] * 8)
     data["timestamp"] = parsed.timestamp
     data["hostname"] = _value_or_none(parsed.hostname)
