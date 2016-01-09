@@ -16,11 +16,8 @@ import asyncio
 import click
 
 from ._click import AsyncCommand
+from .core import handle_syslog
 from .syslog.protocol import SyslogProtocol
-
-
-async def p(message):
-    print(("async message via click", message))
 
 
 @click.command(cls=AsyncCommand)
@@ -29,7 +26,7 @@ async def p(message):
 @click.option("--token")
 @click.pass_context
 async def main(ctx, bind, port, token):
-    protocol = SyslogProtocol(p, token=token, loop=ctx.event_loop)
+    protocol = SyslogProtocol(handle_syslog, token=token, loop=ctx.event_loop)
     server = await ctx.event_loop.create_server(protocol, bind, port)
 
     cancelled = False
