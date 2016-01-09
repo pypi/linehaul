@@ -10,10 +10,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
 import enum
+import ipaddress
 import posixpath
 
+import arrow
 import pyrsistent
 
 from pyparsing import Combine, Literal as L, QuotedString, Word
@@ -98,8 +99,16 @@ class File(pyrsistent.PRecord):
 
 class Download(pyrsistent.PRecord):
 
-    timestamp = pyrsistent.field(type=str, mandatory=True)
-    ip = pyrsistent.field(type=str, mandatory=True)
+    timestamp = pyrsistent.field(
+        type=arrow.Arrow,
+        mandatory=True,
+        factory=lambda t: arrow.get(t[5:-4], "DD MMM YYYY HH:mm:ss"),
+    )
+    ip = pyrsistent.field(
+        type=(ipaddress.IPv4Address, ipaddress.IPv6Address),
+        mandatory=True,
+        factory=ipaddress.ip_address,
+    )
     url = pyrsistent.field(type=str, mandatory=True)
     file = pyrsistent.field(type=File, mandatory=True, factory=File.create)
     user_agent = pyrsistent.field(type=str, mandatory=True)
