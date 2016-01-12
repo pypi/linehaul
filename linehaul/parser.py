@@ -21,6 +21,8 @@ from pyparsing import Combine, Literal as L, QuotedString, Word
 from pyparsing import printables, restOfLine, srange
 from pyparsing import ParseException
 
+from . import user_agents
+
 
 class NullValue:
     pass
@@ -111,7 +113,7 @@ class Download(pyrsistent.PRecord):
     )
     url = pyrsistent.field(type=str, mandatory=True)
     file = pyrsistent.field(type=File, mandatory=True, factory=File.create)
-    user_agent = pyrsistent.field(type=str, mandatory=True)
+    user_agent = pyrsistent.field(type=user_agents.UserAgent)
 
 
 def _value_or_none(value):
@@ -136,6 +138,9 @@ def parse(message):
     data["file"]["project"] = _value_or_none(parsed.project_name)
     data["file"]["version"] = _value_or_none(parsed.version)
     data["file"]["package_type"] = _value_or_none(parsed.package_type)
-    data["user_agent"] = parsed.user_agent
+
+    ua = user_agents.parse(parsed.user_agent)
+    if ua is not None:
+        data["user_agent"] = ua
 
     return Download.create(data)
