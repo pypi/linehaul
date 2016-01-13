@@ -92,7 +92,7 @@ class File(pyrsistent.PRecord):
     filename = pyrsistent.field(type=str, mandatory=True)
     project = pyrsistent.field(type=(str, type(None)), mandatory=True)
     version = pyrsistent.field(type=(str, type(None)), mandatory=True)
-    package_type = pyrsistent.field(
+    type = pyrsistent.field(
         type=(str, type(None), PackageType),
         mandatory=True,
         factory=PackageType,
@@ -113,7 +113,7 @@ class Download(pyrsistent.PRecord):
     )
     url = pyrsistent.field(type=str, mandatory=True)
     file = pyrsistent.field(type=File, mandatory=True, factory=File.create)
-    user_agent = pyrsistent.field(type=user_agents.UserAgent)
+    details = pyrsistent.field(type=user_agents.UserAgent)
 
 
 def _value_or_none(value):
@@ -137,10 +137,10 @@ def parse(message):
     data["file"]["filename"] = posixpath.basename(parsed.url)
     data["file"]["project"] = _value_or_none(parsed.project_name)
     data["file"]["version"] = _value_or_none(parsed.version)
-    data["file"]["package_type"] = _value_or_none(parsed.package_type)
+    data["file"]["type"] = _value_or_none(parsed.package_type)
 
     ua = user_agents.parse(parsed.user_agent)
     if ua is not None:
-        data["user_agent"] = ua
+        data["details"] = ua
 
     return Download.create(data)
