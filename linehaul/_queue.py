@@ -31,19 +31,16 @@ class FlowControlQueueMixin:
             self._paused = False
             self._transport.resume_reading()
 
-    def put_nowait(self, item):
+    def _put(self, item):
         if not self._paused and self.full():
             self._paused = True
             self._transport.pause_reading()
 
-        self._put(item)
-        self._unfinished_tasks += 1
-        self._finished.clear()
-        self._wakeup_next(self._getters)
+        return super()._put(item)
 
-    def get_nowait(self, *args, **kwargs):
+    def _get(self):
         try:
-            return super().get_nowait(*args, **kwargs)
+            return super()._get()
         finally:
             self._maybe_resume_transport()
 
