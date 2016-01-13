@@ -11,11 +11,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import asyncio
-
 import click
 
 from ._click import AsyncCommand
+from ._server import Server
 from .core import Linehaul
 
 
@@ -25,27 +24,6 @@ from .core import Linehaul
 @click.option("--token")
 @click.pass_context
 async def main(ctx, bind, port, token):
-    loop = ctx.event_loop
-
-    # Create our Linehaul object, this is a simple object which acts as a
-    # factory for asyncio.Protocol instances. The key thing is that this keeps
-    # track of active protocol instances so that they can be shutdown when
-    # we're exiting.
-    with Linehaul(token=token, loop=loop) as linehaul:
-        # Start up the server listening on the bound ports.
-        server = await loop.create_server(linehaul, bind, port)
-
-        try:
-            # Wait for the server to close, it's unlikely this will actually
-            # happen since there is nothing to actually close it at this point.
-            # However we want to block at this point until the program exits,
-            # and if the server closes for some reason, we do want to continue
-            # executing this coroutine.
-            await server.wait_closed()
-        except asyncio.CancelledError:  # TODO: Should this be more general?
-            # If we were told to cancel, then the program must be exiting so
-            # we'll
-            # close our server to prevent it from accepting any new connections
-            # and wait for that to occur.
-            server.close()
+    with Linehaul(token=token, loop=ctx.event_loop) as linehaul:
+        async with Server(linehaul, bind, port, loop=ctx.event_loop) as server:
             await server.wait_closed()
