@@ -52,24 +52,26 @@ class CloseableQueueMixin:
 
         super().__init__(*args, **kwargs)
 
+    def _put(self, item):
+        if self.closed:
+            raise QueueClosed
+
+        return super()._put(item)
+
+    def _close_waiters(self, waiters):
+        while waiters:
+            waiter = waiters.popleft()
+            if not waiter.done():
+                waiter.set_exception(QueueClosed)
+
     @property
     def closed(self):
         return self._closed
 
     def close(self):
         self._closed = True
-
-    async def put(self, item):
-        if self.closed:
-            raise QueueClosed
-
-        return await super().put(item)
-
-    def put_nowait(self, item):
-        if self.closed:
-            raise QueueClosed
-
-        return super().put_nowait(item)
+        self._close_waiters(self._getters)
+        self._close_waiters(self._putters)
 
 
 class FlowControlQueue(FlowControlQueueMixin, asyncio.Queue):

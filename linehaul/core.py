@@ -19,7 +19,7 @@ import uuid
 import aiohttp
 
 from . import parser
-from ._queue import CloseableFlowControlQueue
+from ._queue import CloseableFlowControlQueue, QueueClosed
 from .syslog.protocol import SyslogProtocol
 
 
@@ -103,14 +103,16 @@ async def send(queue, *, loop):
                 # our list to be processed then we don't want to wait forever,
                 # prefering instead to send what we have. However if we do have
                 # items we'll only wait a few minutes before giving up and
-                # sending what we do have.
+                # sending what we do have. In addition, if the queue is closed
+                # then we'll just go ahead and send what we have now since a
+                # closed, empty queue is never going to gain more items.
                 try:
                     row = await asyncio.wait_for(
                         queue.get(),
                         timeout=MAX_WAIT if all_rows else None,
                         loop=loop,
                     )
-                except asyncio.TimeoutError:
+                except (asyncio.TimeoutError, QueueClosed):
                     break
 
                 # Go ahead and add the row we've pulled off the queue onto our
