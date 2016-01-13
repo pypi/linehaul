@@ -23,6 +23,8 @@ class LineProtocol(asyncio.Protocol):
         self.transport = transport
         self._buffer = b""
 
+        return super().connection_made(transport)
+
     def data_received(self, data):
         # Get all of the lines of the buffer, and the new data, and then split
         # this into lines.
@@ -44,14 +46,15 @@ class LineProtocol(asyncio.Protocol):
         self.transport.write(line + self.delimiter)
 
 
-class _SyslogProtocol(LineProtocol):
+class SyslogProtocol(LineProtocol):
 
     delimiter = b"\n"
 
-    def __init__(self, handler, *, token=None, loop=None):
-        self.handler = handler
+    def __init__(self, *args, token=None, loop=None, **kwargs):
         self.token = token.encode("utf8")  # We always assume utf8
         self.loop = loop
+
+        return super().__init__(*args, **kwargs)
 
     def line_received(self, line):
         # If we have a token, and the line we've been given doesn't start with
@@ -69,12 +72,8 @@ class _SyslogProtocol(LineProtocol):
         # Actually parse our message and get a SyslogMessage object
         message = parser.parse(line)
 
-        # Now, schedule a task that will process this line.
-        asyncio.ensure_future(self.handler(message), loop=self.loop)
+        # Dispatch our message so that subclasses can handle them.
+        self.message_received(message)
 
-
-def SyslogProtocol(*args, **kwargs):
-    def factory():
-        return _SyslogProtocol(*args, **kwargs)
-
-    return factory
+    def message_received(self, message):
+        raise NotImplementedError
