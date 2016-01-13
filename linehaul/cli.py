@@ -16,8 +16,7 @@ import asyncio
 import click
 
 from ._click import AsyncCommand
-from .core import handle_syslog
-from .syslog.protocol import SyslogProtocol
+from .core import Linehaul
 
 
 @click.command(cls=AsyncCommand)
@@ -26,38 +25,27 @@ from .syslog.protocol import SyslogProtocol
 @click.option("--token")
 @click.pass_context
 async def main(ctx, bind, port, token):
-    protocol = SyslogProtocol(handle_syslog, token=token, loop=ctx.event_loop)
-    server = await ctx.event_loop.create_server(protocol, bind, port)
+    loop = ctx.event_loop
 
-    cancelled = False
-    try:
-        return await server.wait_closed()
-    except asyncio.CancelledError:
-        click.echo(click.style("Shutting Down...", fg="yellow"))
-        cancelled = True
+    # Create our Linehaul object, this is a simple object which acts as a
+    # factory for asyncio.Protocol instances. The key thing is that this keeps
+    # track of active protocol instances so that they can be shutdown when
+    # we're exiting.
+    with Linehaul(token=token, loop=loop) as linehaul:
+        # Start up the server listening on the bound ports.
+        server = await loop.create_server(linehaul, bind, port)
 
-        # Signal for the server close.
-        server.close()
-
-        # Wait until the server is closed
-        await server.wait_closed()
-    finally:
-        # Get all of the other tasks besides the current task (which should be
-        # the task that is running this coroutine).
-        tasks = [
-            t for t in asyncio.Task.all_tasks(loop=ctx.event_loop)
-            if t is not asyncio.Task.current_task(loop=ctx.event_loop)
-        ]
-
-        # Wait for any existing tasks to finish, if we were cancelled we'll
-        # only wait 30 seconds before triggering all of them to be cancelled
-        # otherwise we'll just wait.
-        if tasks:
-            _, pending = await asyncio.wait(
-                tasks,
-                timeout=30 if cancelled else None,
-                loop=ctx.event_loop,
-            )
-
-            for task in pending:
-                task.cancel()
+        try:
+            # Wait for the server to close, it's unlikely this will actually
+            # happen since there is nothing to actually close it at this point.
+            # However we want to block at this point until the program exits,
+            # and if the server closes for some reason, we do want to continue
+            # executing this coroutine.
+            await server.wait_closed()
+        except asyncio.CancelledError:  # TODO: Should this be more general?
+            # If we were told to cancel, then the program must be exiting so
+            # we'll
+            # close our server to prevent it from accepting any new connections
+            # and wait for that to occur.
+            server.close()
+            await server.wait_closed()
