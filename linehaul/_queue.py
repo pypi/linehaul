@@ -52,7 +52,6 @@ class CloseableQueueMixin:
 
     def __init__(self, *args, **kwargs):
         self._closed = False
-        self._closed_marker = object()
 
         super().__init__(*args, **kwargs)
 
