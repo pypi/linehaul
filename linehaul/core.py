@@ -12,8 +12,11 @@
 # limitations under the License.
 
 import asyncio
+import itertools
 import weakref
 import uuid
+
+import aiohttp
 
 from . import parser
 from ._queue import CloseableFlowControlQueue
@@ -84,5 +87,46 @@ class Linehaul:
             protocol.close()
 
 
+def _extract_row_date(row):
+    return row["json"]["timestamp"].format("YYYYMDDD")
+
+
 async def send(queue, *, loop):
-    pass
+    with aiohttp.ClientSession() as session:
+        # Contiue processing rows while either the queue is not closed, or the
+        # queue is not empty. We want to exhaust it before finishing up.
+        while not queue.closed or not queue.empty():
+            all_rows = []
+
+            while len(all_rows) < BATCH_SIZE:
+                # Fetch an item off of the queue, if we have existing items in
+                # our list to be processed then we don't want to wait forever,
+                # prefering instead to send what we have. However if we do have
+                # items we'll only wait a few minutes before giving up and
+                # sending what we do have.
+                try:
+                    row = await asyncio.wait_for(
+                        queue.get(),
+                        timeout=MAX_WAIT if all_rows else None,
+                        loop=loop,
+                    )
+                except asyncio.TimeoutError:
+                    break
+
+                # Go ahead and add the row we've pulled off the queue onto our
+                # list of rows to process.
+                all_rows.append(row)
+
+            for date, rows in itertools.groupby(
+                    sorted(all_rows, key=_extract_row_date),
+                    _extract_row_date):
+                rows = list(rows)
+
+                s = rows[0]["json"]["timestamp"].format("YYYYMMDD")
+                data = {
+                    "kind": "bigquery#tableDataInsertAllRequest",
+                    "templateSuffix": "_{}".format(s),
+                    "rows": len(rows),
+                }
+
+                print((queue.qsize(), data))
