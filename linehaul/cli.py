@@ -11,6 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
+
 import click
 
 from ._click import AsyncCommand
@@ -26,4 +28,7 @@ from .core import Linehaul
 async def main(ctx, bind, port, token):
     with Linehaul(token=token, loop=ctx.event_loop) as linehaul:
         async with Server(linehaul, bind, port, loop=ctx.event_loop) as server:
-            await server.wait_closed()
+            try:
+                await server.wait_closed()
+            except asyncio.CancelledError:
+                click.echo(click.style("Shutting Down...", fg="yellow"))
