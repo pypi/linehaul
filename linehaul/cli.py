@@ -27,13 +27,15 @@ from .core import Linehaul
 @click.option("--token")
 @click.option("--account")
 @click.option("--key", type=click.File("r"))
+@click.option("--reuse-port/--no-reuse-port", default=True)
 @click.argument("table")
 @click.pass_context
-async def main(ctx, bind, port, token, account, key, table):
+async def main(ctx, bind, port, token, account, key, reuse_port, table):
     bqc = BigQueryClient(*table.split(":"), client_id=account, key=key.read())
 
     with Linehaul(token=token, bigquery=bqc, loop=ctx.event_loop) as lh:
-        async with Server(lh, bind, port, loop=ctx.event_loop) as s:
+        async with Server(lh, bind, port,
+                          reuse_port=reuse_port, loop=ctx.event_loop) as s:
             try:
                 await s.wait_closed()
             except asyncio.CancelledError:
