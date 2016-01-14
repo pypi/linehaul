@@ -133,6 +133,8 @@ def parse(message):
     if ua is None:
         return  # Ignored user agents mean we'll skip trying to log this event
 
+    data["details"] = ua
+
     try:
         return Download.create(data)
     except (pyrsistent.PTypeError, pyrsistent.InvariantException) as exc:
