@@ -323,7 +323,8 @@ class Parser:
             ^\(null\)$ |
             ^WordPress/ |
             ^Chef\ (?:Client|Knife)/ |
-            ^Ruby$
+            ^Ruby$ |
+            ^Slackbot-LinkExpanding
         )
         """,
         re.VERBOSE,
