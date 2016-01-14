@@ -57,10 +57,14 @@ class LinehaulProtocol(SyslogProtocol):
         return super().connection_lost(exc)
 
     def message_received(self, message):
-        self.queue.put_nowait({
-            "insertId": str(uuid.uuid4()),
-            "json": parser.parse(message.message).serialize(),
-        })
+        try:
+            self.queue.put_nowait({
+                "insertId": str(uuid.uuid4()),
+                "json": parser.parse(message.message).serialize(),
+            })
+        except Exception as exc:
+            print((message, exc))  # TODO: Better Error Handling
+
         self._ensure_sender()
 
 

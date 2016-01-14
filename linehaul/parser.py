@@ -145,4 +145,7 @@ def parse(message):
     if ua is not None:
         data["details"] = ua
 
-    return Download.create(data)
+    try:
+        return Download.create(data)
+    except (pyrsistent.PTypeError, pyrsistent.InvariantException) as exc:
+        raise ValueError(str(exc)) from None
