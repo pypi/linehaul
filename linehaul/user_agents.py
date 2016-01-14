@@ -234,6 +234,21 @@ class Parser:
             }
         }
 
+    _artifactory_re = re.compile(r"^Artifactory/(?P<version>\S+)$")
+
+    @classmethod
+    def artifactory_format(cls, user_agent):
+        m = cls._artifactory_re.search(user_agent)
+        if m is None:
+            return
+
+        return {
+            "installer": {
+                "name": "Artifactory",
+                "version": m.group("version"),
+            }
+        }
+
     @staticmethod
     def urllib2_format(user_agent):
         # This isn't really a format exactly, prior to pip 1.4 pip used urllib2
@@ -321,6 +336,7 @@ class Parser:
             cls.bandersnatch_format,
             cls.z3c_pypimirror_format,
             cls.devpi_format,
+            cls.artifactory_format,
             cls.urllib2_format,
             cls.requests_format,
             cls.os_format,
