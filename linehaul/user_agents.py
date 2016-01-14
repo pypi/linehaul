@@ -320,7 +320,7 @@ class Parser:
     _ignore_re = re.compile(
         r"""
         (?:
-            ^Datadog Agent/ |
+            ^Datadog\ Agent/ |
             ^\(null\)$ |
             ^WordPress/
         )
