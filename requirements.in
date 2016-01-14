@@ -1,4 +1,9 @@
+aiohttp
 arrow
 click
+cryptography
+oauthlib
+packaging
+pyjwt
 pyparsing
 pyrsistent
