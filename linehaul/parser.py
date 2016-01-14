@@ -130,8 +130,8 @@ def parse(message):
     data["file"]["type"] = _value_or_none(parsed.package_type)
 
     ua = user_agents.parse(parsed.user_agent)
-    if ua is not None:
-        data["details"] = ua
+    if ua is None:
+        return  # Ignored user agents mean we'll skip trying to log this event
 
     try:
         return Download.create(data)

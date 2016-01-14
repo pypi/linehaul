@@ -292,8 +292,7 @@ class Parser:
             ^fetch\ libfetch/\S+$ |
             ^OpenBSD\ ftp$ |
             ^Homebrew\ |
-            ^MacPorts/ |
-            ^Chef\ (?:Client|Knife)/
+            ^MacPorts/
         )
         """,
         re.VERBOSE,
@@ -322,7 +321,8 @@ class Parser:
         (?:
             ^Datadog\ Agent/ |
             ^\(null\)$ |
-            ^WordPress/
+            ^WordPress/ |
+            ^Chef\ (?:Client|Knife)/
         )
         """,
         re.VERBOSE,

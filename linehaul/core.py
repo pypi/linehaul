@@ -58,12 +58,15 @@ class LinehaulProtocol(SyslogProtocol):
 
     def message_received(self, message):
         try:
-            self.queue.put_nowait({
-                "insertId": str(uuid.uuid4()),
-                "json": parser.parse(message.message).serialize(),
-            })
+            download = parser.parse(message.message)
         except Exception as exc:
             print((message, exc))  # TODO: Better Error Handling
+
+        if download is not None:
+            self.queue.put_nowait({
+                "insertId": str(uuid.uuid4()),
+                "json": download.serialize(),
+            })
 
         self._ensure_sender()
 
