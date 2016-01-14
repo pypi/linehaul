@@ -115,6 +115,10 @@ class Parser:
         if not system.endswith("/Unknown"):
             data.setdefault("system", {})["release"] = system.split("/", 1)[1]
 
+        if (data["implementation"]["name"].lower() == "cpython"
+                and data["implementation"].get("version")):
+            data["python"] = data["implementation"]["version"]
+
         return data
 
     _distribute_re = re.compile(
