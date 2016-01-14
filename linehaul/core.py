@@ -16,7 +16,7 @@ import itertools
 import weakref
 import uuid
 
-from . import parser
+from . import parser, _metrics as m
 from ._queue import CloseableFlowControlQueue, QueueClosed
 from .syslog.protocol import SyslogProtocol
 
@@ -68,6 +68,7 @@ class LinehaulProtocol(SyslogProtocol):
                 "insertId": str(uuid.uuid4()),
                 "json": download.serialize(),
             })
+            m.QUEUED.inc()
 
         self._ensure_sender()
 
@@ -125,6 +126,7 @@ async def send(client, queue, *, loop):
                 # Go ahead and add the row we've pulled off the queue onto our
                 # list of rows to process.
                 all_rows.append(row)
+                m.QUEUED.dec()
 
             for date, rows in itertools.groupby(
                     sorted(all_rows, key=_extract_row_date),

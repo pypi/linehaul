@@ -13,6 +13,7 @@ cryptography==1.2.1
 idna==2.0                 # via cryptography
 oauthlib==1.0.3
 packaging==15.3
+prometheus-client==0.0.13
 pyasn1==0.1.9             # via cryptography
 pycparser==2.14           # via cffi
 pyjwt==1.4.0

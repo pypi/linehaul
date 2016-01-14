@@ -15,6 +15,7 @@ import asyncio
 import ssl
 
 import click
+import prometheus_client
 
 from ._click import AsyncCommand
 from ._server import Server
@@ -42,10 +43,14 @@ from .core import Linehaul
         resolve_path=True,
     ),
 )
+@click.option("--metrics-port", type=int, default=12000)
 @click.argument("table")
 @click.pass_context
 async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
-               tls_certificate, table):
+               tls_certificate, metrics_port, table):
+    # Start up our metrics server in another thread.
+    prometheus_client.start_http_server(8000)
+
     bqc = BigQueryClient(*table.split(":"), client_id=account, key=key.read())
 
     if tls_certificate:

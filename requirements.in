@@ -4,6 +4,7 @@ click
 cryptography
 oauthlib
 packaging
+prometheus-client
 pyjwt
 pyparsing
 pyrsistent
