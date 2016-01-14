@@ -317,7 +317,16 @@ class Parser:
 
         return {"installer": {"name": "Browser"}}
 
-    _ignore_re = re.compile(r"^(?:Datadog Agent/|\(null\)$)")
+    _ignore_re = re.compile(
+        r"""
+        (?:
+            ^Datadog Agent/ |
+            ^\(null\)$ |
+            ^WordPress/
+        )
+        """,
+        re.VERBOSE,
+    )
 
     @classmethod
     def ignored(cls, user_agent):
