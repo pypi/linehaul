@@ -38,16 +38,11 @@ TIMESTAMP = QuotedString(quoteChar='"')
 TIMESTAMP = TIMESTAMP.setResultsName("timestamp")
 TIMESTAMP.setName("Timestamp")
 
-IP_OCTECT = Word(srange("[0-9]"), min=1, max=3)
-IP = Combine(IP_OCTECT + "." + IP_OCTECT + "." + IP_OCTECT + "." + IP_OCTECT)
-IP = IP.setResultsName("ip")
-IP.setName("IP Address")
-
 URL = Word(printables)
 URL = URL.setResultsName("url")
 URL.setName("URL")
 
-REQUEST = TIMESTAMP + SP + IP + SP + URL
+REQUEST = TIMESTAMP + SP + URL
 
 PROJECT_NAME = NULL | Word(srange("[a-zA-Z0-9]") + "._-")
 PROJECT_NAME = PROJECT_NAME.setResultsName("project_name")
@@ -107,12 +102,6 @@ class Download(pyrsistent.PRecord):
         mandatory=True,
         factory=lambda t: arrow.get(t[5:-4], "DD MMM YYYY HH:mm:ss"),
     )
-    ip = pyrsistent.field(
-        type=(ipaddress.IPv4Address, ipaddress.IPv6Address),
-        mandatory=True,
-        factory=ipaddress.ip_address,
-        serializer=lambda format, d: str(d),
-    )
     url = pyrsistent.field(type=str, mandatory=True)
     file = pyrsistent.field(type=File, mandatory=True, factory=File.create)
     details = pyrsistent.field(type=user_agents.UserAgent)
@@ -133,7 +122,6 @@ def parse(message):
 
     data = {}
     data["timestamp"] = parsed.timestamp
-    data["ip"] = parsed.ip
     data["url"] = parsed.url
     data["file"] = {}
     data["file"]["filename"] = posixpath.basename(parsed.url)
