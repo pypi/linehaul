@@ -324,7 +324,8 @@ class Parser:
             ^WordPress/ |
             ^Chef\ (?:Client|Knife)/ |
             ^Ruby$ |
-            ^Slackbot-LinkExpanding
+            ^Slackbot-LinkExpanding |
+            ^Java/
         )
         """,
         re.VERBOSE,
