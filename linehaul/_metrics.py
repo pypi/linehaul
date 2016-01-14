@@ -10,8 +10,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from prometheus_client import Gauge
+from prometheus_client import Counter, Gauge
 
+
+EVENTS = Counter("linehaul_events", "# of total events processed.")
 
 QUEUED = Gauge(
     "linehaul_queued_events", "# of download events currently queued")

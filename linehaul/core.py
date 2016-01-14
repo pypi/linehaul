@@ -68,6 +68,7 @@ class LinehaulProtocol(SyslogProtocol):
                 "insertId": str(uuid.uuid4()),
                 "json": download.serialize(),
             })
+            m.EVENTS.inc()
             m.QUEUED.inc()
 
         self._ensure_sender()
