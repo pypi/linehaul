@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import asyncio
+import ssl
 
 import click
 
@@ -28,14 +29,50 @@ from .core import Linehaul
 @click.option("--account")
 @click.option("--key", type=click.File("r"))
 @click.option("--reuse-port/--no-reuse-port", default=True)
+@click.option(
+    "--tls-ciphers",
+    default="ECDHE+CHACHA20:ECDH+AES128GCM:ECDH+AES128:!SHA:!aNULL:!eNULL",
+)
+@click.option(
+    "--tls-certificate",
+    type=click.Path(
+        exists=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+)
 @click.argument("table")
 @click.pass_context
-async def main(ctx, bind, port, token, account, key, reuse_port, table):
+async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
+               tls_certificate, table):
     bqc = BigQueryClient(*table.split(":"), client_id=account, key=key.read())
+
+    if tls_certificate:
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+        ssl_context.load_cert_chain(tls_certificate)
+        ssl_context.set_ciphers(tls_ciphers)
+
+        # Even though our SSLContext allows SSLv2+ and TLSv1+ we want to
+        # restrict it to just TLSv1.2+.
+        ssl_context.options |= ssl.OP_NO_SSLv2
+        ssl_context.options |= ssl.OP_NO_SSLv3
+        ssl_context.options |= ssl.OP_NO_TLSv1
+        ssl_context.options |= ssl.OP_NO_TLSv1_1
+
+        # Set a few options to get a better level of security.
+        ssl_context.options |= ssl.OP_CIPHER_SERVER_PREFERENCE
+        ssl_context.options |= ssl.OP_SINGLE_DH_USE
+        ssl_context.options |= ssl.OP_SINGLE_ECDH_USE
+        ssl_context.options |= ssl.OP_NO_COMPRESSION
+    else:
+        ssl_context = None
 
     with Linehaul(token=token, bigquery=bqc, loop=ctx.event_loop) as lh:
         async with Server(lh, bind, port,
-                          reuse_port=reuse_port, loop=ctx.event_loop) as s:
+                          reuse_port=reuse_port,
+                          ssl=ssl_context,
+                          loop=ctx.event_loop) as s:
             try:
                 await s.wait_closed()
             except asyncio.CancelledError:
