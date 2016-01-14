@@ -322,7 +322,8 @@ class Parser:
             ^Datadog\ Agent/ |
             ^\(null\)$ |
             ^WordPress/ |
-            ^Chef\ (?:Client|Knife)/
+            ^Chef\ (?:Client|Knife)/ |
+            ^Ruby$
         )
         """,
         re.VERBOSE,
