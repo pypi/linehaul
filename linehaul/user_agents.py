@@ -14,8 +14,9 @@ import json
 import re
 
 import packaging.version
-import packaging.specifiers
 import pyrsistent
+
+from packaging.specifiers import SpecifierSet
 
 
 class Installer(pyrsistent.PRecord):
@@ -76,7 +77,7 @@ class Parser:
         # to only versions of pip newer than that.
         version_str = user_agent.split()[0].split("/", 1)[1]
         version = packaging.version.parse(version_str)
-        if version not in packaging.specifiers.SpecifierSet(">=6"):
+        if version not in SpecifierSet(">=6", prereleases=True):
             return
 
         return json.loads(user_agent.split(maxsplit=1)[1])
@@ -91,7 +92,7 @@ class Parser:
         # we'll need to restrict it to only versions of pip between 1.4 and 6.0
         version_str = user_agent.split()[0].split("/", 1)[1]
         version = packaging.version.parse(version_str)
-        if version not in packaging.specifiers.SpecifierSet(">=1.4,<6"):
+        if version not in SpecifierSet(">=1.4,<6", prereleases=True):
             return
 
         _, impl, system = user_agent.split()
