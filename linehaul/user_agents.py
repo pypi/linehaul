@@ -276,7 +276,7 @@ class Parser:
             ^fetch\ libfetch/\S+$ |
             ^OpenBSD ftp$ |
             ^Homebrew\ |
-            ^Macports/ |
+            ^Macports/
         )
         """,
         re.VERBOSE,
