@@ -306,7 +306,7 @@ class Parser:
 
         return {"installer": {"name": "OS"}}
 
-    _browser_re = re.compile(r"^(?:Mozilla|wget|curl|Opera)/", re.I)
+    _browser_re = re.compile(r"^(?:Mozilla|wget|curl|Opera|aria2)/", re.I)
 
     @classmethod
     def browser_format(cls, user_agent):
