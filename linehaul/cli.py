@@ -17,6 +17,7 @@ import click
 
 from ._click import AsyncCommand
 from ._server import Server
+from .bigquery import BigQueryClient
 from .core import Linehaul
 
 
@@ -24,11 +25,16 @@ from .core import Linehaul
 @click.option("--bind", default="0.0.0.0")
 @click.option("--port", type=int, default=512)
 @click.option("--token")
+@click.option("--account")
+@click.option("--key", type=click.File("r"))
+@click.argument("table")
 @click.pass_context
-async def main(ctx, bind, port, token):
-    with Linehaul(token=token, loop=ctx.event_loop) as linehaul:
-        async with Server(linehaul, bind, port, loop=ctx.event_loop) as server:
+async def main(ctx, bind, port, token, account, key, table):
+    bqc = BigQueryClient(*table.split(":"), client_id=account, key=key.read())
+
+    with Linehaul(token=token, bigquery=bqc, loop=ctx.event_loop) as lh:
+        async with Server(lh, bind, port, loop=ctx.event_loop) as s:
             try:
-                await server.wait_closed()
+                await s.wait_closed()
             except asyncio.CancelledError:
                 click.echo(click.style("Shutting Down...", fg="yellow"))

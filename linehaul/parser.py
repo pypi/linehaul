@@ -90,12 +90,13 @@ class PackageType(enum.Enum):
 class File(pyrsistent.PRecord):
 
     filename = pyrsistent.field(type=str, mandatory=True)
-    project = pyrsistent.field(type=(str, type(None)), mandatory=True)
-    version = pyrsistent.field(type=(str, type(None)), mandatory=True)
+    project = pyrsistent.field(type=str, mandatory=True)
+    version = pyrsistent.field(type=str, mandatory=True)
     type = pyrsistent.field(
-        type=(str, type(None), PackageType),
+        type=(str, PackageType),
         mandatory=True,
         factory=PackageType,
+        serializer=lambda format, d: d.value,
     )
 
 
@@ -110,6 +111,7 @@ class Download(pyrsistent.PRecord):
         type=(ipaddress.IPv4Address, ipaddress.IPv6Address),
         mandatory=True,
         factory=ipaddress.ip_address,
+        serializer=lambda format, d: str(d),
     )
     url = pyrsistent.field(type=str, mandatory=True)
     file = pyrsistent.field(type=File, mandatory=True, factory=File.create)

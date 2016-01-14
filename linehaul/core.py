@@ -16,8 +16,6 @@ import itertools
 import weakref
 import uuid
 
-import aiohttp
-
 from . import parser
 from ._queue import CloseableFlowControlQueue, QueueClosed
 from .syslog.protocol import SyslogProtocol
@@ -25,20 +23,21 @@ from .syslog.protocol import SyslogProtocol
 
 BATCH_SIZE = 500
 MAX_WAIT = 5 * 60  # 5 minutes
-STREAMING_URL = (
-    "https://www.googleapis.com/bigquery/v2/projects/{project_id}/"
-    "datasets/{dataset_id}/tables/{table_id}/insertAll"
-)
 
 
 class LinehaulProtocol(SyslogProtocol):
 
     transport = None
 
+    def __init__(self, *args, bigquery, **kwargs):
+        self.bigquery = bigquery
+
+        return super().__init__(*args, **kwargs)
+
     def _ensure_sender(self):
         if self.sender is None or self.sender.done():
             self.sender = asyncio.ensure_future(
-                send(self.queue, loop=self.loop),
+                send(self.bigquery, self.queue, loop=self.loop),
                 loop=self.loop,
             )
 
@@ -91,8 +90,8 @@ def _extract_row_date(row):
     return row["json"]["timestamp"].format("YYYYMDDD")
 
 
-async def send(queue, *, loop):
-    with aiohttp.ClientSession() as session:
+async def send(client, queue, *, loop):
+    with client() as bq:
         # Contiue processing rows while either the queue is not closed, or the
         # queue is not empty. We want to exhaust it before finishing up.
         while not queue.closed or not queue.empty():
@@ -123,12 +122,12 @@ async def send(queue, *, loop):
                     sorted(all_rows, key=_extract_row_date),
                     _extract_row_date):
                 rows = list(rows)
+                template_suffix = "_{}".format(
+                    rows[0]["json"]["timestamp"].format("YYYYMMDD")
+                )
 
-                s = rows[0]["json"]["timestamp"].format("YYYYMMDD")
-                data = {
-                    "kind": "bigquery#tableDataInsertAllRequest",
-                    "templateSuffix": "_{}".format(s),
-                    "rows": len(rows),
-                }
-
-                print((queue.qsize(), data))
+                await bq.insert_all(
+                    rows,
+                    template_suffix=template_suffix,
+                    skip_invalid_rows=True,
+                )
