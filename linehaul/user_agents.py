@@ -275,7 +275,7 @@ class Parser:
         r"""
         (?:
             ^fetch\ libfetch/\S+$ |
-            ^OpenBSD ftp$ |
+            ^OpenBSD\ ftp$ |
             ^Homebrew\ |
             ^MacPorts/ |
             ^Chef\ (?:Client|Knife)/
