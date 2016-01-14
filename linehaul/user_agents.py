@@ -318,6 +318,7 @@ class Parser:
             cls.pex_format,
             cls.conda_format,
             cls.bandersnatch_format,
+            cls.z3c_pypimirror_format,
             cls.devpi_format,
             cls.urllib2_format,
             cls.requests_format,
