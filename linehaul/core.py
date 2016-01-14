@@ -133,10 +133,12 @@ async def send(client, queue, *, loop):
                     sorted(all_rows, key=_extract_row_date),
                     _extract_row_date):
                 rows = list(rows)
-                suffix = rows[0]["json"]["timestamp"].format("YYYYMMDD")
+                template_suffix = "_{}".format(
+                    rows[0]["json"]["timestamp"].format("YYYYMMDD")
+                )
 
                 await bq.insert_all(
                     rows,
-                    template_suffix=suffix,
+                    template_suffix=template_suffix,
                     skip_invalid_rows=True,
                 )
