@@ -61,8 +61,7 @@ class LinehaulProtocol(SyslogProtocol):
             download = parser.parse(message.message)
         except Exception as exc:
             print((message, exc))  # TODO: Better Error Handling
-
-        if download is not None:
+        else:
             self.queue.put_nowait({
                 "insertId": str(uuid.uuid4()),
                 "json": download.serialize(),
