@@ -11,13 +11,12 @@
 # limitations under the License.
 
 import enum
-import ipaddress
 import posixpath
 
 import arrow
 import pyrsistent
 
-from pyparsing import Combine, Literal as L, QuotedString, Word
+from pyparsing import Literal as L, QuotedString, Word
 from pyparsing import printables, restOfLine, srange
 from pyparsing import ParseException
 
@@ -38,11 +37,15 @@ TIMESTAMP = QuotedString(quoteChar='"')
 TIMESTAMP = TIMESTAMP.setResultsName("timestamp")
 TIMESTAMP.setName("Timestamp")
 
+COUNTRY_CODE = Word(printables)
+COUNTRY_CODE = COUNTRY_CODE.setResultsName("country_code")
+COUNTRY_CODE.setName("Country Code")
+
 URL = Word(printables)
 URL = URL.setResultsName("url")
 URL.setName("URL")
 
-REQUEST = TIMESTAMP + SP + URL
+REQUEST = TIMESTAMP + SP + COUNTRY_CODE + SP + URL
 
 PROJECT_NAME = NULL | Word(srange("[a-zA-Z0-9]") + "._-")
 PROJECT_NAME = PROJECT_NAME.setResultsName("project_name")
@@ -102,6 +105,7 @@ class Download(pyrsistent.PRecord):
         mandatory=True,
         factory=lambda t: arrow.get(t[5:-4], "DD MMM YYYY HH:mm:ss"),
     )
+    country_code = pyrsistent.field(type=(str, type(None)), mandatory=True)
     url = pyrsistent.field(type=str, mandatory=True)
     file = pyrsistent.field(type=File, mandatory=True, factory=File.create)
     details = pyrsistent.field(type=user_agents.UserAgent)
@@ -122,6 +126,7 @@ def parse(message):
 
     data = {}
     data["timestamp"] = parsed.timestamp
+    data["country_code"] = _value_or_none(parsed.country_code)
     data["url"] = parsed.url
     data["file"] = {}
     data["file"]["filename"] = posixpath.basename(parsed.url)
