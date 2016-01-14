@@ -49,7 +49,7 @@ from .core import Linehaul
 async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
                tls_certificate, metrics_port, table):
     # Start up our metrics server in another thread.
-    prometheus_client.start_http_server(8000)
+    prometheus_client.start_http_server(metrics_port)
 
     bqc = BigQueryClient(*table.split(":"), client_id=account, key=key.read())
 
