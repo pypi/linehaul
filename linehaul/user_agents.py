@@ -365,7 +365,7 @@ class Parser:
             cls.z3c_pypimirror_format,
             cls.devpi_format,
             cls.artifactory_format,
-            cls.pep381client,
+            cls.pep381client_format,
             cls.urllib2_format,
             cls.requests_format,
             cls.os_format,
