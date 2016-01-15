@@ -340,7 +340,8 @@ class Parser:
             ^Chef\ (?:Client|Knife)/ |
             ^Ruby$ |
             ^Slackbot-LinkExpanding |
-            ^Java/
+            ^Java/ |
+            ^github-olee$
         )
         """,
         re.VERBOSE,
