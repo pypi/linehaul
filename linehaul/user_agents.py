@@ -348,7 +348,8 @@ class Parser:
             ^YisouSpider$ |
             ^Apache\ Ant/ |
             ^Salt/ |
-            ^ltx71\ -\ \(http://ltx71.com/\)
+            ^ltx71\ -\ \(http://ltx71.com/\) |
+            ^Debian\ uscan
         )
         """,
         re.VERBOSE,
