@@ -249,6 +249,21 @@ class Parser:
             }
         }
 
+    _pep381client_re = re.compile(r"^pep381client/(?P<version>\S+)$")
+
+    @classmethod
+    def pep381client_format(cls, user_agent):
+        m = cls._pep381client_re.search(user_agent)
+        if m is None:
+            return
+
+        return {
+            "installer": {
+                "name": "pep381client",
+                "version": m.group("version"),
+            }
+        }
+
     @staticmethod
     def urllib2_format(user_agent):
         # This isn't really a format exactly, prior to pip 1.4 pip used urllib2
@@ -349,6 +364,7 @@ class Parser:
             cls.z3c_pypimirror_format,
             cls.devpi_format,
             cls.artifactory_format,
+            cls.pep381client,
             cls.urllib2_format,
             cls.requests_format,
             cls.os_format,
