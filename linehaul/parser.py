@@ -16,8 +16,8 @@ import posixpath
 import arrow
 import pyrsistent
 
-from pyparsing import Literal as L, QuotedString, Word
-from pyparsing import printables, restOfLine, srange
+from pyparsing import Literal as L, Word
+from pyparsing import printables as _printables, restOfLine
 from pyparsing import ParseException
 
 from . import user_agents
@@ -28,12 +28,15 @@ class NullValue:
 
 NullValue = NullValue()
 
-SP = L(" ").suppress()
+
+printables = "".join(set(_printables + " " + "\t") - {"|"})
+
+PIPE = L("|").suppress()
 
 NULL = L("(null)")
 NULL.setParseAction(lambda s, l, t: NullValue)
 
-TIMESTAMP = QuotedString(quoteChar='"')
+TIMESTAMP = Word(printables)
 TIMESTAMP = TIMESTAMP.setResultsName("timestamp")
 TIMESTAMP.setName("Timestamp")
 
@@ -45,13 +48,13 @@ URL = Word(printables)
 URL = URL.setResultsName("url")
 URL.setName("URL")
 
-REQUEST = TIMESTAMP + SP + COUNTRY_CODE + SP + URL
+REQUEST = TIMESTAMP + PIPE + COUNTRY_CODE + PIPE + URL
 
-PROJECT_NAME = NULL | Word(srange("[a-zA-Z0-9]") + "._-")
+PROJECT_NAME = NULL | Word(printables)
 PROJECT_NAME = PROJECT_NAME.setResultsName("project_name")
 PROJECT_NAME.setName("Project Name")
 
-VERSION = NULL | QuotedString(quoteChar="'")
+VERSION = NULL | Word(printables)
 VERSION = VERSION.setResultsName("version")
 VERSION.setName("Version")
 
@@ -62,13 +65,13 @@ PACKAGE_TYPE = NULL | (
 PACKAGE_TYPE = PACKAGE_TYPE.setResultsName("package_type")
 PACKAGE_TYPE.setName("Package Type")
 
-PROJECT = PROJECT_NAME + SP + VERSION + SP + PACKAGE_TYPE
+PROJECT = PROJECT_NAME + PIPE + VERSION + PIPE + PACKAGE_TYPE
 
 USER_AGENT = restOfLine
 USER_AGENT = USER_AGENT.setResultsName("user_agent")
 USER_AGENT.setName("UserAgent")
 
-MESSAGE = REQUEST + SP + PROJECT + SP + USER_AGENT
+MESSAGE = REQUEST + PIPE + PROJECT + PIPE + USER_AGENT
 MESSAGE.leaveWhitespace()
 
 
