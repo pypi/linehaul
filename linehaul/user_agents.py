@@ -341,7 +341,8 @@ class Parser:
             ^Ruby$ |
             ^Slackbot-LinkExpanding |
             ^Java/ |
-            ^github-olee$
+            ^github-olee$ |
+            ^YisouSpider$
         )
         """,
         re.VERBOSE,
