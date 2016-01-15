@@ -308,6 +308,7 @@ class Parser:
             ^OpenBSD\ ftp$ |
             ^Homebrew\ |
             ^MacPorts/ |
+            ^NetBSD-ftp/ |
             ^xbps/
         )
         """,
