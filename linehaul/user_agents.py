@@ -342,7 +342,8 @@ class Parser:
             ^Slackbot-LinkExpanding |
             ^Java/ |
             ^github-olee$ |
-            ^YisouSpider$
+            ^YisouSpider$ |
+            ^Apache\ Ant/
         )
         """,
         re.VERBOSE,
