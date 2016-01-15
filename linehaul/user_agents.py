@@ -307,7 +307,8 @@ class Parser:
             ^fetch\ libfetch/\S+$ |
             ^OpenBSD\ ftp$ |
             ^Homebrew\ |
-            ^MacPorts/
+            ^MacPorts/ |
+            ^xbps/
         )
         """,
         re.VERBOSE,
