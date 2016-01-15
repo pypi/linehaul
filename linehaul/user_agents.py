@@ -346,7 +346,8 @@ class Parser:
             ^Java/ |
             ^github-olee$ |
             ^YisouSpider$ |
-            ^Apache\ Ant/
+            ^Apache\ Ant/ |
+            ^Salt/
         )
         """,
         re.VERBOSE,
