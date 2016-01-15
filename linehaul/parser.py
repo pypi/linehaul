@@ -51,7 +51,7 @@ PROJECT_NAME = NULL | Word(srange("[a-zA-Z0-9]") + "._-")
 PROJECT_NAME = PROJECT_NAME.setResultsName("project_name")
 PROJECT_NAME.setName("Project Name")
 
-VERSION = NULL | Word(printables)
+VERSION = NULL | QuotedString(quoteChar="'")
 VERSION = VERSION.setResultsName("version")
 VERSION.setName("Version")
 
