@@ -347,7 +347,8 @@ class Parser:
             ^github-olee$ |
             ^YisouSpider$ |
             ^Apache\ Ant/ |
-            ^Salt/
+            ^Salt/ |
+            ^ltx71\ -\ \(http://ltx71.com/\)
         )
         """,
         re.VERBOSE,
