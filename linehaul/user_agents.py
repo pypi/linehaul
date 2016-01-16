@@ -324,7 +324,7 @@ class Parser:
         return {"installer": {"name": "OS"}}
 
     _browser_re = re.compile(
-        r"^(?:Mozilla|wget|curl|Opera|aria2)(?:/|$)",
+        r"^(?:Mozilla|wget|curl|Opera|aria2|AndroidDownloadManager)(?:/|$)",
         re.I,
     )
 
