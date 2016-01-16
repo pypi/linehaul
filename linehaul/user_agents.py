@@ -346,6 +346,7 @@ class Parser:
             ^Ruby$ |
             ^Slackbot-LinkExpanding |
             ^Java/ |
+            ^Go\ \d\.\d\ package http$ |
             ^github-olee$ |
             ^YisouSpider$ |
             ^Apache\ Ant/ |
