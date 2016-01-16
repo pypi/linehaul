@@ -353,6 +353,7 @@ class Parser:
             ^Apache\ Ant/ |
             ^Salt/ |
             ^ltx71\ -\ \(http://ltx71.com/\) |
+            ^Scrapy/ |
             ^Debian\ uscan
         )
         """,
