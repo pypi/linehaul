@@ -364,6 +364,7 @@ class Parser:
             ^YisouSpider$ |
             ^Apache\ Ant/ |
             ^Salt/ |
+            ^ansible-httpget$ |
             ^ltx71\ -\ \(http://ltx71.com/\) |
             ^Scrapy/ |
             ^Debian\ uscan
