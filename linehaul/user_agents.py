@@ -312,6 +312,7 @@ class Parser:
             ^slapt-get |
             ^pypi-install/ |
             ^slackrepo$ |
+            ^PTXdist |
             ^xbps/
         )
         """,
