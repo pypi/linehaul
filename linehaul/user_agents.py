@@ -342,6 +342,7 @@ class Parser:
                 FDM |
                 URL/Emacs$ |
                 Firefox/ |
+                UCWEB |
                 Links
             )
             (?:/|$)
