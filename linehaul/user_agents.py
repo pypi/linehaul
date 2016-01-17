@@ -314,6 +314,7 @@ class Parser:
             ^pypi-install/ |
             ^slackrepo$ |
             ^PTXdist |
+            ^GARstow/ |
             ^xbps/
         )
         """,
