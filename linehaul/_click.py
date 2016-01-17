@@ -40,8 +40,8 @@ class AsyncCommand(click.Command):
 
         # Check to see if the callback is a coroutine function, and if it is
         # we'll wrap it so that it gets called with the global event loop.
-        if (inspect.iscoroutinefunction(self.callback)
-                or inspect.iscoroutinefunction(
+        if (inspect.iscoroutinefunction(self.callback) or
+                inspect.iscoroutinefunction(
                     getattr(self.callback, "__wrapped__", None))):
             original_callback = self.callback
 
