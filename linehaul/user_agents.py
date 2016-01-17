@@ -337,6 +337,7 @@ class Parser:
                 AndroidDownloadManager |
                 com\.apple\.WebKit\.Networking/ |
                 FDM |
+                URL/Emacs$ |
                 Links
             )
             (?:/|$)
