@@ -305,6 +305,7 @@ class Parser:
         r"""
         (?:
             ^fetch\ libfetch/\S+$ |
+            ^libfetch/\S+$ |
             ^OpenBSD\ ftp$ |
             ^Homebrew\ |
             ^MacPorts/ |
