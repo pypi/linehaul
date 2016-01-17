@@ -374,6 +374,7 @@ class Parser:
             ^Download\ Master$ |
             ^Java/ |
             ^Go\ \d\.\d\ package http$ |
+            ^Go-http-client/ |
             ^GNU\ Guile$ |
             ^github-olee$ |
             ^YisouSpider$ |
