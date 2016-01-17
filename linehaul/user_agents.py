@@ -308,7 +308,7 @@ class Parser:
             ^libfetch/\S+$ |
             ^OpenBSD\ ftp$ |
             ^Homebrew\ |
-            ^MacPorts/ |
+            ^MacPorts/? |
             ^NetBSD-ftp/ |
             ^slapt-get |
             ^pypi-install/ |
