@@ -309,6 +309,7 @@ class Parser:
             ^Homebrew\ |
             ^MacPorts/ |
             ^NetBSD-ftp/ |
+            ^slapt-get |
             ^xbps/
         )
         """,
