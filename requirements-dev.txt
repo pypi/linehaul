@@ -1,4 +1,4 @@
 pip-tools
 pytest
 flake8
-coverage
+coverage>=4.1.dev0
