@@ -333,6 +333,7 @@ class Parser:
             ^
             (?:
                 Mozilla |
+                Safari |
                 wget |
                 curl |
                 Opera |
