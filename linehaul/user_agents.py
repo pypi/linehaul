@@ -367,6 +367,7 @@ class Parser:
             ^ansible-httpget$ |
             ^ltx71\ -\ \(http://ltx71.com/\) |
             ^Scrapy/ |
+            ^spectool/ |
             ^Debian\ uscan
         )
         """,
