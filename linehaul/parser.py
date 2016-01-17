@@ -16,7 +16,7 @@ import posixpath
 import arrow
 import pyrsistent
 
-from pyparsing import Literal as L, Word
+from pyparsing import Literal as L, Word, Optional
 from pyparsing import printables as _printables, restOfLine
 from pyparsing import ParseException
 
@@ -48,7 +48,7 @@ URL = Word(printables)
 URL = URL.setResultsName("url")
 URL.setName("URL")
 
-REQUEST = TIMESTAMP + PIPE + COUNTRY_CODE + PIPE + URL
+REQUEST = TIMESTAMP + PIPE + Optional(COUNTRY_CODE) + PIPE + URL
 
 PROJECT_NAME = NULL | Word(printables)
 PROJECT_NAME = PROJECT_NAME.setResultsName("project_name")
@@ -115,7 +115,7 @@ class Download(pyrsistent.PRecord):
 
 
 def _value_or_none(value):
-    if value is NullValue:
+    if value is NullValue or value == "":
         return None
     else:
         return value
