@@ -357,6 +357,7 @@ class Parser:
             ^Chef\ (?:Client|Knife)/ |
             ^Ruby$ |
             ^Slackbot-LinkExpanding |
+            ^TextualInlineMedia/ |
             ^Java/ |
             ^Go\ \d\.\d\ package http$ |
             ^GNU\ Guile$ |
