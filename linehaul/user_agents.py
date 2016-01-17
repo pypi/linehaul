@@ -336,6 +336,7 @@ class Parser:
                 aria2 |
                 AndroidDownloadManager |
                 com\.apple\.WebKit\.Networking/ |
+                FDM |
                 Links
             )
             (?:/|$)
