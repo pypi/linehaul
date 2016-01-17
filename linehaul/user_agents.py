@@ -340,7 +340,7 @@ class Parser:
                 AndroidDownloadManager |
                 com\.apple\.WebKit\.Networking/ |
                 FDM |
-                URL/Emacs$ |
+                URL/Emacs |
                 Firefox/ |
                 UCWEB |
                 Links
