@@ -378,6 +378,7 @@ class Parser:
             ^ltx71\ -\ \(http://ltx71.com/\) |
             ^Scrapy/ |
             ^spectool/ |
+            Nutch |
             ^Debian\ uscan
         )
         """,
