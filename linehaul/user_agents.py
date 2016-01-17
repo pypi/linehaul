@@ -382,6 +382,7 @@ class Parser:
             Nutch |
             ^AWSBrewLinkChecker/ |
             ^Y!J-ASR/ |
+            ^NSIS_Inetc\ \(Mozilla\)$ |
             ^Debian\ uscan
         )
         """,
