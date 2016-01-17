@@ -381,6 +381,7 @@ class Parser:
             ^spectool/ |
             Nutch |
             ^AWSBrewLinkChecker/ |
+            ^Y!J-ASR/ |
             ^Debian\ uscan
         )
         """,
