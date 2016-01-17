@@ -358,6 +358,7 @@ class Parser:
             ^Ruby$ |
             ^Slackbot-LinkExpanding |
             ^TextualInlineMedia/ |
+            ^WeeChat/ |
             ^Java/ |
             ^Go\ \d\.\d\ package http$ |
             ^GNU\ Guile$ |
