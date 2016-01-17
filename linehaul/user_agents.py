@@ -338,6 +338,7 @@ class Parser:
                 com\.apple\.WebKit\.Networking/ |
                 FDM |
                 URL/Emacs$ |
+                Firefox/ |
                 Links
             )
             (?:/|$)
