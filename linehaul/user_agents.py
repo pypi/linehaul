@@ -310,6 +310,7 @@ class Parser:
             ^MacPorts/ |
             ^NetBSD-ftp/ |
             ^slapt-get |
+            ^pypi-install/ |
             ^xbps/
         )
         """,
