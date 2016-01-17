@@ -6,7 +6,7 @@
 #
 aiohttp==0.20.2
 arrow==0.7.0
-cffi==1.4.2               # via cryptography
+cffi==1.5.0               # via cryptography
 chardet==2.3.0            # via aiohttp
 click==6.2
 cryptography==1.2.1
@@ -24,4 +24,4 @@ six==1.10.0               # via cryptography, pyrsistent, python-dateutil
 
 # The following packages are commented out because they are
 # considered to be unsafe in a requirements file:
-# setuptools==19.2          # via cryptography
+# setuptools==19.4          # via cryptography
