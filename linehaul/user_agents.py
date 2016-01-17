@@ -340,7 +340,7 @@ class Parser:
                 aria2 |
                 AndroidDownloadManager |
                 com\.apple\.WebKit\.Networking/ |
-                FDM |
+                FDM\ \S+ |
                 URL/Emacs |
                 Firefox/ |
                 UCWEB |
