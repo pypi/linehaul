@@ -311,6 +311,7 @@ class Parser:
             ^NetBSD-ftp/ |
             ^slapt-get |
             ^pypi-install/ |
+            ^slackrepo$ |
             ^xbps/
         )
         """,
