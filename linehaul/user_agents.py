@@ -359,6 +359,7 @@ class Parser:
             ^Slackbot-LinkExpanding |
             ^TextualInlineMedia/ |
             ^WeeChat/ |
+            ^Download\ Master$ |
             ^Java/ |
             ^Go\ \d\.\d\ package http$ |
             ^GNU\ Guile$ |
