@@ -380,6 +380,7 @@ class Parser:
             ^Scrapy/ |
             ^spectool/ |
             Nutch |
+            ^AWSBrewLinkChecker/ |
             ^Debian\ uscan
         )
         """,
