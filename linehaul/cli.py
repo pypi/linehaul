@@ -12,11 +12,11 @@
 # limitations under the License.
 
 import asyncio
-import ssl
 
 import click
 import prometheus_client
 
+from . import _tls as tls
 from ._click import AsyncCommand
 from ._server import Server
 from .bigquery import BigQueryClient
@@ -53,23 +53,8 @@ async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
 
     bqc = BigQueryClient(*table.split(":"), client_id=account, key=key.read())
 
-    if tls_certificate:
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-        ssl_context.load_cert_chain(tls_certificate)
-        ssl_context.set_ciphers(tls_ciphers)
-
-        # Even though our SSLContext allows SSLv2+ and TLSv1+ we want to
-        # restrict it to just TLSv1.2+.
-        ssl_context.options |= ssl.OP_NO_SSLv2
-        ssl_context.options |= ssl.OP_NO_SSLv3
-        ssl_context.options |= ssl.OP_NO_TLSv1
-        ssl_context.options |= ssl.OP_NO_TLSv1_1
-
-        # Set a few options to get a better level of security.
-        ssl_context.options |= ssl.OP_CIPHER_SERVER_PREFERENCE
-        ssl_context.options |= ssl.OP_SINGLE_DH_USE
-        ssl_context.options |= ssl.OP_SINGLE_ECDH_USE
-        ssl_context.options |= ssl.OP_NO_COMPRESSION
+    if tls_certificate is not None:
+        ssl_context = tls.create_context(tls_certificate, tls_ciphers)
     else:
         ssl_context = None
 
