@@ -8,3 +8,4 @@ prometheus-client
 pyjwt
 pyparsing
 pyrsistent
+raven

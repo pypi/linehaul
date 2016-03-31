@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import asyncio
+import logging.config
 
 import click
 import prometheus_client
@@ -44,10 +45,46 @@ from .core import Linehaul
     ),
 )
 @click.option("--metrics-port", type=int, default=12000)
+@click.option("--sentry-dsn")
 @click.argument("table")
 @click.pass_context
 async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
-               tls_certificate, metrics_port, table):
+               tls_certificate, metrics_port, sentry_dsn, table):
+    # Configure logging
+    logging.config.dictConfig({
+        "version": 1,
+        "disable_existing_loggers": False,
+
+        "formatters": {
+            "console": {
+                "format": "[%(asctime)s][%(levelname)s] %(name)s "
+                          "%(filename)s:%(funcName)s:%(lineno)d | %(message)s",
+                "datefmt": "%H:%M:%S",
+            },
+        },
+
+        "handlers": {
+            "console": {
+                "level": "DEBUG",
+                "class": "logging.StreamHandler",
+                "formatter": "console",
+            },
+            "sentry": {
+                "level": "ERROR",
+                "class": "raven.handlers.logging.SentryHandler",
+                "dsn": sentry_dsn,
+            },
+        },
+
+        "loggers": {
+            "": {
+                "handlers": ["console", "sentry"],
+                "level": "DEBUG",
+                "propagate": False,
+            },
+        },
+    })
+
     # Start up our metrics server in another thread.
     prometheus_client.start_http_server(metrics_port)
 
