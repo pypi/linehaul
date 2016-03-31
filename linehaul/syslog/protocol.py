@@ -51,7 +51,10 @@ class SyslogProtocol(LineProtocol):
     delimiter = b"\n"
 
     def __init__(self, *args, token=None, loop=None, **kwargs):
-        self.token = token.encode("utf8")  # We always assume utf8
+        if token is not None:
+            token = token.encode("utf8")  # We always assume utf8
+
+        self.token = token
         self.loop = loop
 
         return super().__init__(*args, **kwargs)
