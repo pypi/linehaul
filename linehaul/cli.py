@@ -13,9 +13,11 @@
 
 import asyncio
 import logging.config
+import os.path
 
 import click
 import prometheus_client
+import raven
 
 from . import _tls as tls
 from ._click import AsyncCommand
@@ -73,6 +75,9 @@ async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
                 "level": "ERROR",
                 "class": "raven.handlers.logging.SentryHandler",
                 "dsn": sentry_dsn,
+                "release": raven.fetch_git_sha(
+                    os.path.dirname(os.path.dirname(__file__)),
+                ),
             },
         },
 
