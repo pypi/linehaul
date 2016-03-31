@@ -1,8 +1,6 @@
--f hg+https://bitbucket.org/ned/coveragepy#egg=coverage-4.1b2
-
 pip-tools
 pytest
 flake8
-coverage>=4.1.dev0
+coverage>=4.1b2
 pretend
 pytest-asyncio
