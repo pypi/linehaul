@@ -13,6 +13,7 @@
 
 import asyncio
 import itertools
+import logging
 import weakref
 import uuid
 
@@ -23,6 +24,16 @@ from .syslog.protocol import SyslogProtocol
 
 BATCH_SIZE = 500
 MAX_WAIT = 5 * 60  # 5 minutes
+
+
+logger = logging.getLogger("linehaul")
+
+
+def _future_exception_logger(fut):
+    if fut.done() and not fut.cancelled():
+        exc = fut.exception()
+        if exc is not None:
+            logger.error(str(exc), exc_info=exc)
 
 
 class LinehaulProtocol(SyslogProtocol):
@@ -40,6 +51,7 @@ class LinehaulProtocol(SyslogProtocol):
                 send(self.bigquery, self.queue, loop=self.loop),
                 loop=self.loop,
             )
+            self.sender.add_done_callback(_future_exception_logger)
 
     def close(self):
         if self.transport is not None:
