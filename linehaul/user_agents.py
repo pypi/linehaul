@@ -19,6 +19,10 @@ import pyrsistent
 from packaging.specifiers import SpecifierSet
 
 
+class UnknownUserAgentError(ValueError):
+    pass
+
+
 class Installer(pyrsistent.PRecord):
 
     name = pyrsistent.field(type=str)
@@ -427,7 +431,7 @@ class Parser:
         if cls.ignored(user_agent):
             return
 
-        raise ValueError("Unknown UserAgent: {!r}".format(user_agent))
+        raise UnknownUserAgentError(user_agent)
 
 
 parse = Parser.parse

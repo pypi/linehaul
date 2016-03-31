@@ -20,6 +20,7 @@ import uuid
 from . import parser, _metrics as m
 from ._queue import CloseableFlowControlQueue, QueueClosed
 from .syslog.protocol import SyslogProtocol
+from .user_agents import UnknownUserAgentError
 
 
 BATCH_SIZE = 500
@@ -71,6 +72,15 @@ class LinehaulProtocol(SyslogProtocol):
     def message_received(self, message):
         try:
             download = parser.parse(message.message)
+        except UnknownUserAgentError as exc:
+            logger.error(
+                "Unknown UserAgent: %s", str(exc),
+                extra={
+                    "fingerprint": ["{{ default }}", str(exc)],
+                    "data": {"message": message},
+                },
+            )
+            return
         except Exception as exc:
             print((message, exc))  # TODO: Better Error Handling
             return
