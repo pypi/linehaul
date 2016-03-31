@@ -82,7 +82,7 @@ class LinehaulProtocol(SyslogProtocol):
             )
             return
         except Exception as exc:
-            print((message, exc))  # TODO: Better Error Handling
+            logger.exception(str(exc), extra={"data": {"message": message}})
             return
 
         if download is not None:
