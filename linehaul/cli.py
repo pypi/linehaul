@@ -95,8 +95,6 @@ async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
     else:
         ssl_context = None
 
-    ctx.event_loop.set_debug(True)
-
     with Linehaul(token=token, bigquery=bqc, loop=ctx.event_loop) as lh:
         async with Server(lh, bind, port,
                           reuse_port=reuse_port,
