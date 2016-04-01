@@ -26,6 +26,9 @@ from .bigquery import BigQueryClient
 from .core import Linehaul
 
 
+__git_hash__ = raven.fetch_git_sha(os.path.dirname(os.path.dirname(__file__)))
+
+
 @click.command(cls=AsyncCommand)
 @click.option("--bind", default="0.0.0.0")
 @click.option("--port", type=int, default=512)
@@ -48,10 +51,12 @@ from .core import Linehaul
 )
 @click.option("--metrics-port", type=int, default=12000)
 @click.option("--sentry-dsn")
+@click.option("--sentry-ua-dsn")
 @click.argument("table")
 @click.pass_context
 async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
-               tls_certificate, metrics_port, sentry_dsn, table):
+               tls_certificate, metrics_port, sentry_dsn, sentry_ua_dsn,
+               table):
     # Configure logging
     logging.config.dictConfig({
         "version": 1,
@@ -75,15 +80,24 @@ async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
                 "level": "ERROR",
                 "class": "raven.handlers.logging.SentryHandler",
                 "dsn": sentry_dsn,
-                "release": raven.fetch_git_sha(
-                    os.path.dirname(os.path.dirname(__file__)),
-                ),
+                "release": __git_hash__,
+            },
+            "ua_sentry": {
+                "level": "ERROR",
+                "class": "raven.handlers.logging.SentryHandler",
+                "dsn": sentry_ua_dsn,
+                "release": __git_hash__,
             },
         },
 
         "loggers": {
             "": {
                 "handlers": ["console", "sentry"],
+                "level": "DEBUG",
+                "propagate": False,
+            },
+            "linehaul.user_agents": {
+                "handlers": ["console", "ua_sentry"],
                 "level": "DEBUG",
                 "propagate": False,
             },

@@ -28,6 +28,7 @@ MAX_WAIT = 5 * 60  # 5 minutes
 
 
 logger = logging.getLogger("linehaul")
+ua_logger = logging.getLogger("linehaul.user_agents")
 
 
 def _future_exception_logger(fut):
@@ -73,7 +74,7 @@ class LinehaulProtocol(SyslogProtocol):
         try:
             download = parser.parse(message.message)
         except UnknownUserAgentError as exc:
-            logger.error(
+            ua_logger.error(
                 "Unknown UserAgent: %s", str(exc),
                 extra={
                     "fingerprint": ["{{ default }}", str(exc)],
