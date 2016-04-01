@@ -253,7 +253,9 @@ class Parser:
             }
         }
 
-    _pep381client_re = re.compile(r"^pep381client/(?P<version>\S+)$")
+    _pep381client_re = re.compile(
+        r"^pep381client(?:-proxy)?/(?P<version>\S+)$"
+    )
 
     @classmethod
     def pep381client_format(cls, user_agent):
