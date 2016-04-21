@@ -20,7 +20,7 @@ pycparser==2.14           # via cffi
 pyjwt==1.4.0
 pyparsing==2.1.1
 pyrsistent==0.11.13
-python-dateutil==2.5.2    # via arrow
+python-dateutil==2.5.3    # via arrow
 raven==5.13.0
 six==1.10.0               # via cryptography, packaging, pyrsistent, python-dateutil
 
