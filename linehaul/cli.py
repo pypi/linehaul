@@ -28,7 +28,10 @@ from .core import Linehaul
 __version__ = raven.fetch_package_version("linehaul")
 
 
-@click.command(cls=AsyncCommand)
+@click.command(
+    cls=AsyncCommand,
+    context_settings={"auto_envvar_prefix": "LINEHAUL"},
+)
 @click.option("--bind", default="0.0.0.0")
 @click.option("--port", type=int, default=512)
 @click.option("--token")
@@ -51,7 +54,7 @@ __version__ = raven.fetch_package_version("linehaul")
 @click.option("--metrics-port", type=int, default=12000)
 @click.option("--sentry-dsn")
 @click.option("--sentry-ua-dsn")
-@click.argument("table")
+@click.argument("table", envvar="BIGQUERY_TABLE")
 @click.pass_context
 async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
                tls_certificate, metrics_port, sentry_dsn, sentry_ua_dsn,
