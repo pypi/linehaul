@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 install_requires = []
 with open("requirements.in", "r") as fp:
@@ -17,6 +17,8 @@ setup(
         ),
         "version_scheme": lambda v: "{.distance}.0".format(v),
     },
+
+    packages=find_packages(exclude=["tests*"]),
 
     entry_points={"console_scripts": ["linehaul = linehaul.cli:main"]},
 
