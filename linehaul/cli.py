@@ -13,7 +13,6 @@
 
 import asyncio
 import logging.config
-import os.path
 
 import click
 import prometheus_client
@@ -26,7 +25,7 @@ from .bigquery import BigQueryClient
 from .core import Linehaul
 
 
-__git_hash__ = raven.fetch_git_sha(os.path.dirname(os.path.dirname(__file__)))
+__version__ = raven.fetch_package_version("linehaul")
 
 
 @click.command(cls=AsyncCommand)
@@ -80,13 +79,13 @@ async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
                 "level": "ERROR",
                 "class": "raven.handlers.logging.SentryHandler",
                 "dsn": sentry_dsn,
-                "release": __git_hash__,
+                "release": __version__,
             },
             "ua_sentry": {
                 "level": "ERROR",
                 "class": "raven.handlers.logging.SentryHandler",
                 "dsn": sentry_ua_dsn,
-                "release": __git_hash__,
+                "release": __version__,
             },
         },
 
