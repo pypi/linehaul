@@ -54,12 +54,14 @@ __version__ = raven.fetch_package_version("linehaul")
 @click.option("--metrics-port", type=int, default=12000)
 @click.option("--sentry-dsn")
 @click.option("--sentry-ua-dsn")
+@click.option("--log-file")
 @click.argument("table", envvar="BIGQUERY_TABLE")
 @click.pass_context
 async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
                tls_certificate, metrics_port, sentry_dsn, sentry_ua_dsn,
-               table):
+               log_file, table):
     # Configure logging
+    target_logger = "logfile" if log_file else "console"
     logging.config.dictConfig({
         "version": 1,
         "disable_existing_loggers": False,
@@ -78,6 +80,12 @@ async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
                 "class": "logging.StreamHandler",
                 "formatter": "console",
             },
+            "logfile": {
+                "level": "DEBUG",
+                "class": "logging.WatchedFileHandler",
+                "formatter": "console",
+                "filename": log_file,
+            },
             "sentry": {
                 "level": "ERROR",
                 "class": "raven.handlers.logging.SentryHandler",
@@ -94,12 +102,12 @@ async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
 
         "loggers": {
             "": {
-                "handlers": ["console", "sentry"],
+                "handlers": [target_logger, "sentry"],
                 "level": "DEBUG",
                 "propagate": False,
             },
             "linehaul.user_agents": {
-                "handlers": ["console", "ua_sentry"],
+                "handlers": [target_logger, "ua_sentry"],
                 "level": "DEBUG",
                 "propagate": False,
             },
