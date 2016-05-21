@@ -82,7 +82,7 @@ async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
             },
             "logfile": {
                 "level": "DEBUG",
-                "class": "logging.WatchedFileHandler",
+                "class": "logging.handlers.WatchedFileHandler",
                 "formatter": "console",
                 "filename": log_file,
             },
