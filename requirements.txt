@@ -10,7 +10,7 @@ cffi==1.6.0               # via cryptography
 chardet==2.3.0            # via aiohttp
 click==6.6
 contextlib2==0.5.3        # via raven
-cryptography==1.3.2
+cryptography==1.3.3
 idna==2.1                 # via cryptography
 oauthlib==1.1.2
 packaging==16.7
