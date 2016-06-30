@@ -9,3 +9,4 @@ pyjwt
 pyparsing
 pyrsistent
 raven
+uvloop
