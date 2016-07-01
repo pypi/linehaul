@@ -29,9 +29,11 @@ class NullValue:
 NullValue = NullValue()
 
 
-printables = "".join(set(_printables + " " + "\t") - {"|"})
+printables = "".join(set(_printables + " " + "\t") - {"|", "@"})
 
 PIPE = L("|").suppress()
+
+AT = L("@").suppress()
 
 NULL = L("(null)")
 NULL.setParseAction(lambda s, l, t: NullValue)
@@ -67,12 +69,32 @@ PACKAGE_TYPE.setName("Package Type")
 
 PROJECT = PROJECT_NAME + PIPE + VERSION + PIPE + PACKAGE_TYPE
 
+TLS_PROTOCOL = NULL | Word(printables)
+TLS_PROTOCOL = TLS_PROTOCOL.setResultsName("tls_protocol")
+TLS_PROTOCOL.setName("TLS Protocol")
+
+TLS_CIPHER = NULL | Word(printables)
+TLS_CIPHER = TLS_CIPHER.setResultsName("tls_cipher")
+TLS_CIPHER.setName("TLS Cipher")
+
+TLS = TLS_PROTOCOL + PIPE + TLS_CIPHER
+
 USER_AGENT = restOfLine
 USER_AGENT = USER_AGENT.setResultsName("user_agent")
 USER_AGENT.setName("UserAgent")
 
-MESSAGE = REQUEST + PIPE + PROJECT + PIPE + USER_AGENT
-MESSAGE.leaveWhitespace()
+V1_HEADER = Optional(L("1").suppress() + AT)
+
+MESSAGE_v1 = V1_HEADER + REQUEST + PIPE + PROJECT + PIPE + USER_AGENT
+MESSAGE_v1.leaveWhitespace()
+
+V2_HEADER = L("2").suppress() + AT
+
+MESSAGE_v2 = \
+    V2_HEADER + REQUEST + PIPE + TLS + PIPE + PROJECT + PIPE + USER_AGENT
+MESSAGE_v2.leaveWhitespace()
+
+MESSAGE = MESSAGE_v2 | MESSAGE_v1
 
 
 @enum.unique
@@ -108,6 +130,8 @@ class Download(pyrsistent.PRecord):
         mandatory=True,
         factory=lambda t: arrow.get(t[5:-4], "DD MMM YYYY HH:mm:ss"),
     )
+    tls_protocol = pyrsistent.field(type=(str, type(None)), mandatory=True)
+    tls_cipher = pyrsistent.field(type=(str, type(None)), mandatory=True)
     country_code = pyrsistent.field(type=(str, type(None)), mandatory=True)
     url = pyrsistent.field(type=str, mandatory=True)
     file = pyrsistent.field(type=File, mandatory=True, factory=File.create)
@@ -129,6 +153,8 @@ def parse(message):
 
     data = {}
     data["timestamp"] = parsed.timestamp
+    data["tls_protocol"] = _value_or_none(parsed.tls_protocol)
+    data["tls_cipher"] = _value_or_none(parsed.tls_cipher)
     data["country_code"] = _value_or_none(parsed.country_code)
     data["url"] = parsed.url
     data["file"] = {}
