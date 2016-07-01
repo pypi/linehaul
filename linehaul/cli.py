@@ -84,7 +84,7 @@ async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
                 "level": "DEBUG",
                 "class": "logging.handlers.WatchedFileHandler",
                 "formatter": "console",
-                "filename": log_file,
+                "filename": log_file or "/dev/null",
             },
             "sentry": {
                 "level": "ERROR",

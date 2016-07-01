@@ -1,3 +1,4 @@
+aiocron
 aiohttp
 arrow
 click
@@ -9,3 +10,4 @@ pyjwt
 pyparsing
 pyrsistent
 raven
+uvloop
