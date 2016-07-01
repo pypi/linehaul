@@ -44,6 +44,7 @@ class LinehaulProtocol(SyslogProtocol):
 
     transport = None
     ensurer = None
+    sender = None
 
     def __init__(self, *args, bigquery, **kwargs):
         self.bigquery = bigquery
@@ -74,7 +75,6 @@ class LinehaulProtocol(SyslogProtocol):
         super().connection_made(transport)
 
         self.queue = CloseableFlowControlQueue(transport)
-        self.sender = None
 
     def connection_lost(self, exc):
         self.queue.close()
