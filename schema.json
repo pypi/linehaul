@@ -152,5 +152,15 @@
                 "mode": "NULLABLE"
             }
         ]
+    },
+    {
+      "name": "tls_protocol",
+      "type": "STRING",
+      "mode": "NULLABLE"
+    },
+    {
+      "name": "tls_cipher",
+      "type": "STRING",
+      "mode": "NULLABLE"
     }
 ]
