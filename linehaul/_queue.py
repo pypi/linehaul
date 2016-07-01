@@ -26,13 +26,22 @@ class FlowControlQueueMixin:
 
         super().__init__(*args, maxsize=maxsize, **kwargs)
 
+    def full(self):
+        # A FlowcontrolQueue is never full, it just pauses the transport when
+        # it reaches the max size, but it still allows items to be placed on
+        # the queue.
+        return False
+
+    def _should_pause(self):
+        return self.qsize() > self.maxsize
+
     def _maybe_resume_transport(self):
-        if self._paused and self.qsize() <= self.maxsize:
+        if self._paused and not self._should_pause():
             self._paused = False
             self._transport.resume_reading()
 
     def _put(self, item):
-        if not self._paused and self.full():
+        if not self._paused and self._should_pause():
             self._paused = True
             self._transport.pause_reading()
 
