@@ -72,6 +72,10 @@ class SyslogProtocol(LineProtocol):
         # We're going to just assume that all of our lines are valid UTF8 lines
         line = line.decode("utf8")
 
+        # If we've been given a blank link, then we'll just skip it:
+        if not line:
+            return
+
         # Actually parse our message and get a SyslogMessage object
         message = parser.parse(line)
 
