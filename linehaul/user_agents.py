@@ -147,11 +147,17 @@ class Parser:
         r"^Python-urllib/(?P<python>\d\.\d) setuptools/(?P<version>\S+)$"
     )
 
+    _setuptools_new_re = re.compile(
+        r"^setuptools/(?P<version>\S+) Python-urllib/(?P<python>\d\.\d)$"
+    )
+
     @classmethod
     def setuptools_format(cls, user_agent):
         m = cls._setuptools_re.search(user_agent)
         if m is None:
-            return
+            m = cls._setuptools_new_re.search(user_agent)
+            if m is None:
+                return
 
         return {
             "installer": {
