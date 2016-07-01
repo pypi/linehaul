@@ -17,6 +17,8 @@ import logging
 import weakref
 import uuid
 
+from aiocron import crontab
+
 from . import parser, _metrics as m
 from ._queue import CloseableFlowControlQueue, QueueClosed
 from .syslog.protocol import SyslogProtocol
@@ -41,13 +43,20 @@ def _future_exception_logger(fut):
 class LinehaulProtocol(SyslogProtocol):
 
     transport = None
+    ensurer = None
 
     def __init__(self, *args, bigquery, **kwargs):
         self.bigquery = bigquery
 
-        return super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
-    def _ensure_sender(self):
+        self.ensurer = crontab(
+            "* * * * * */15",
+            func=self._ensure_sender,
+            loop=self.loop,
+        )
+
+    async def _ensure_sender(self):
         if self.sender is None or self.sender.done():
             self.sender = asyncio.ensure_future(
                 send(self.bigquery, self.queue, loop=self.loop),
@@ -58,6 +67,8 @@ class LinehaulProtocol(SyslogProtocol):
     def close(self):
         if self.transport is not None:
             self.transport.close()
+        if self.ensurer is not None:
+            self.ensurer.stop()
 
     def connection_made(self, transport):
         super().connection_made(transport)
@@ -67,6 +78,7 @@ class LinehaulProtocol(SyslogProtocol):
 
     def connection_lost(self, exc):
         self.queue.close()
+        self.ensurer.stop()
 
         return super().connection_lost(exc)
 
@@ -93,8 +105,6 @@ class LinehaulProtocol(SyslogProtocol):
             })
             m.EVENTS.inc()
             m.QUEUED.inc()
-
-        self._ensure_sender()
 
 
 class Linehaul:
