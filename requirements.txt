@@ -23,7 +23,7 @@ pyjwt==1.4.1
 pyparsing==2.1.5
 pyrsistent==0.11.13
 python-dateutil==2.5.3    # via arrow, croniter
-raven==5.22.0
+raven==5.23.0
 six==1.10.0               # via cryptography, packaging, pyrsistent, python-dateutil
 uvloop==0.4.34
 
