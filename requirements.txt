@@ -12,7 +12,7 @@ chardet==2.3.0            # via aiohttp
 click==6.6
 contextlib2==0.5.4        # via raven
 croniter==0.3.12          # via aiocron
-cryptography==1.4
+cryptography==1.5
 idna==2.1                 # via cryptography
 oauthlib==1.1.2
 packaging==16.7
