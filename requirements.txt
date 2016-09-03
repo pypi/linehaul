@@ -14,7 +14,7 @@ contextlib2==0.5.4        # via raven
 croniter==0.3.12          # via aiocron
 cryptography==1.5
 idna==2.1                 # via cryptography
-oauthlib==1.1.2
+oauthlib==2.0.0
 packaging==16.7
 prometheus-client==0.0.14
 pyasn1==0.1.9             # via cryptography
