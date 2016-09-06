@@ -7,7 +7,7 @@
 aiocron==0.5
 aiohttp==0.22.5
 arrow==0.8.0
-cffi==1.7.0               # via cryptography
+cffi==1.8.2               # via cryptography
 chardet==2.3.0            # via aiohttp
 click==6.6
 contextlib2==0.5.4        # via raven
