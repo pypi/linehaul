@@ -20,7 +20,7 @@ prometheus-client==0.0.14
 pyasn1==0.1.9             # via cryptography
 pycparser==2.14           # via cffi
 pyjwt==1.4.2
-pyparsing==2.1.8
+pyparsing==2.1.9
 pyrsistent==0.11.13
 python-dateutil==2.5.3    # via arrow, croniter
 raven==5.26.0
