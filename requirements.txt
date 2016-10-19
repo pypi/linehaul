@@ -4,7 +4,7 @@
 #
 #    pip-compile requirements.in
 #
-aiocron==0.5
+aiocron==0.6
 aiohttp==1.0.5
 arrow==0.8.0
 cffi==1.8.3               # via cryptography
