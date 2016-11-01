@@ -11,7 +11,7 @@ cffi==1.8.3               # via cryptography
 chardet==2.3.0            # via aiohttp
 click==6.6
 contextlib2==0.5.4        # via raven
-croniter==0.3.12          # via aiocron
+croniter==0.3.13          # via aiocron
 cryptography==1.5.2
 idna==2.1                 # via cryptography
 oauthlib==2.0.0
