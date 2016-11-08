@@ -5,7 +5,7 @@
 #    pip-compile requirements.in
 #
 aiocron==0.6
-aiohttp==1.1.1
+aiohttp==1.1.2
 arrow==0.8.0
 cffi==1.8.3               # via cryptography
 chardet==2.3.0            # via aiohttp
@@ -22,7 +22,7 @@ pycparser==2.17           # via cffi
 pyjwt==1.4.2
 pyparsing==2.1.10
 pyrsistent==0.11.13
-python-dateutil==2.5.3    # via arrow, croniter
+python-dateutil==2.6.0    # via arrow, croniter
 raven==5.31.0
 six==1.10.0               # via cryptography, packaging, pyrsistent, python-dateutil
 uvloop==0.6.0
