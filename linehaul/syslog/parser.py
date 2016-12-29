@@ -25,6 +25,7 @@ from . import Facility, Severity
 class NilValue:
     pass
 
+
 NilValue = NilValue()
 
 

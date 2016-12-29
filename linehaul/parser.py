@@ -26,6 +26,7 @@ from . import user_agents
 class NullValue:
     pass
 
+
 NullValue = NullValue()
 
 
