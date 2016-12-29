@@ -150,6 +150,11 @@
                 "name": "openssl_version",
                 "type": "STRING",
                 "mode": "NULLABLE"
+            },
+            {
+                "name": "setuptools_version",
+                "type": "STRING",
+                "mode": "NULLABLE"
             }
         ]
     },

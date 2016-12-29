@@ -67,6 +67,7 @@ class UserAgent(pyrsistent.PRecord):
     system = pyrsistent.field(type=System, factory=System.create)
     cpu = pyrsistent.field(type=str)
     openssl_version = pyrsistent.field(type=str)
+    setuptools_version = pyrsistent.field(type=str)
 
 
 class Parser:
