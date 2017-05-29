@@ -100,7 +100,7 @@ class Parser:
         if version not in SpecifierSet(">=1.4,<6", prereleases=True):
             return
 
-        _, impl, system = user_agent.split()
+        _, impl, system = user_agent.split(maxsplit=2)
 
         data = {
             "installer": {
