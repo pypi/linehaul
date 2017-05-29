@@ -11,6 +11,7 @@
 # limitations under the License.
 
 import enum
+import urllib.parse
 import posixpath
 
 import arrow
@@ -157,7 +158,7 @@ def parse(message):
     data["tls_protocol"] = _value_or_none(parsed.tls_protocol)
     data["tls_cipher"] = _value_or_none(parsed.tls_cipher)
     data["country_code"] = _value_or_none(parsed.country_code)
-    data["url"] = parsed.url
+    data["url"] = urllib.parse.unquote(parsed.url)
     data["file"] = {}
     data["file"]["filename"] = posixpath.basename(parsed.url)
     data["file"]["project"] = _value_or_none(parsed.project_name)
