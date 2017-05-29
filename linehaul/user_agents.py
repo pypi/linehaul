@@ -85,7 +85,10 @@ class Parser:
         if version not in SpecifierSet(">=6", prereleases=True):
             return
 
-        return json.loads(user_agent.split(maxsplit=1)[1])
+        try:
+            return json.loads(user_agent.split(maxsplit=1)[1])
+        except json.JSONDecodeError:
+            return
 
     @staticmethod
     def pip_1_4_format(user_agent):
