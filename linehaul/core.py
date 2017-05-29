@@ -86,13 +86,7 @@ class LinehaulProtocol(SyslogProtocol):
         try:
             download = parser.parse(message.message)
         except UnknownUserAgentError as exc:
-            ua_logger.error(
-                "Unknown UserAgent: %s", str(exc),
-                extra={
-                    "fingerprint": ["{{ default }}", str(exc)],
-                    "data": {"message": message},
-                },
-            )
+            ua_logger.error("Unknown UserAgent: %s", str(exc))
             return
         except Exception as exc:
             logger.exception(str(exc), extra={"data": {"message": message}})

@@ -53,13 +53,11 @@ __version__ = raven.fetch_package_version("linehaul")
 )
 @click.option("--metrics-port", type=int, default=12000)
 @click.option("--sentry-dsn")
-@click.option("--sentry-ua-dsn")
 @click.option("--log-file")
 @click.argument("table", envvar="BIGQUERY_TABLE")
 @click.pass_context
 async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
-               tls_certificate, metrics_port, sentry_dsn, sentry_ua_dsn,
-               log_file, table):
+               tls_certificate, metrics_port, sentry_dsn, log_file, table):
     # Configure logging
     target_logger = "logfile" if log_file else "console"
     logging.config.dictConfig({
@@ -92,12 +90,6 @@ async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
                 "dsn": sentry_dsn,
                 "release": __version__,
             },
-            "ua_sentry": {
-                "level": "ERROR",
-                "class": "raven.handlers.logging.SentryHandler",
-                "dsn": sentry_ua_dsn,
-                "release": __version__,
-            },
         },
 
         "loggers": {
@@ -107,7 +99,7 @@ async def main(ctx, bind, port, token, account, key, reuse_port, tls_ciphers,
                 "propagate": False,
             },
             "linehaul.user_agents": {
-                "handlers": [target_logger, "ua_sentry"],
+                "handlers": [target_logger],
                 "level": "DEBUG",
                 "propagate": False,
             },
