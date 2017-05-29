@@ -45,6 +45,7 @@ class LinehaulProtocol(SyslogProtocol):
     transport = None
     ensurer = None
     sender = None
+    queue = None
 
     def __init__(self, *args, bigquery, **kwargs):
         self.bigquery = bigquery
@@ -58,7 +59,8 @@ class LinehaulProtocol(SyslogProtocol):
         )
 
     async def _ensure_sender(self):
-        if self.sender is None or self.sender.done():
+        if (self.queue is not None and
+                (self.sender is None or self.sender.done())):
             self.sender = asyncio.ensure_future(
                 send(self.bigquery, self.queue, loop=self.loop),
                 loop=self.loop,
