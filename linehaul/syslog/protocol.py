@@ -70,7 +70,14 @@ class SyslogProtocol(LineProtocol):
                 line = line[len(self.token):]
 
         # We're going to just assume that all of our lines are valid UTF8 lines
-        line = line.decode("utf8")
+        try:
+            line = line.decode("utf8")
+        except UnicodeDecodeError:
+            # In this case we were not given a valid UTF8 line, we're just
+            # going to skip this line. It would be nice for this to be more
+            # robust, but that would involve parsing using bytes the whole way
+            # through and I don't really feel like that buys us much.
+            return
 
         # If we've been given a blank link, then we'll just skip it:
         if not line:
