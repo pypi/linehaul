@@ -164,14 +164,6 @@ def parse(message):
     data["file"]["version"] = _value_or_none(parsed.version)
     data["file"]["type"] = _value_or_none(parsed.package_type)
 
-    # At this point, we should have information for filename, project, version,
-    # and type. However for some reason this isn't always the case. We can't
-    # really do anything if we don't know this information, so we're going to
-    # just skip it. Ideally at some point we can figure out why sometimes
-    # Fastly doesn't include this information.
-    if not all(data["file"].values()):
-        return
-
     ua = user_agents.parse(parsed.user_agent)
     if ua is None:
         return  # Ignored user agents mean we'll skip trying to log this event
