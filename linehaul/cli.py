@@ -98,8 +98,8 @@ class Linehaul:
     async def serve(
         self, bind="0.0.0.0", port=512, token=None, task_status=trio.TASK_STATUS_IGNORED
     ):
-        incoming = trio.Queue(20)
-        outgoing = trio.Queue(20)
+        incoming = trio.Queue(1000)
+        outgoing = trio.Queue(10)  # Multiply by 500 to get total # of downloads
 
         async with trio.open_nursery() as nursery:
             nursery.start_soon(collector, incoming, outgoing)
