@@ -93,11 +93,11 @@ async def sender(outgoing):
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class Linehaul:
 
-    bind: str = "0.0.0.0"
-    port: int = 512
-    token: Optional[str] = None
+    table: str
 
-    async def __call__(self, task_status=trio.TASK_STATUS_IGNORED):
+    async def serve(
+        self, bind="0.0.0.0", port=512, token=None, task_status=trio.TASK_STATUS_IGNORED
+    ):
         incoming = trio.Queue(20)
         outgoing = trio.Queue(20)
 
@@ -106,18 +106,37 @@ class Linehaul:
             nursery.start_soon(sender, outgoing)
 
             await nursery.start(
-                trio.serve_tcp, LinehaulHandler(incoming, token=self.token), self.port
+                trio.serve_tcp, LinehaulHandler(incoming, token=token), port
             )
 
             task_status.started()
 
+    async def migrate(self):
+        pass
 
-@click.command(context_settings={"auto_envvar_prefix": "LINEHAUL"})
+
+pass_linehaul = click.make_pass_decorator(Linehaul)
+
+
+@click.group(context_settings={"auto_envvar_prefix": "LINEHAUL"})
+@click.option("--table", required=True)
+@click.pass_context
+def cli(ctx, table):
+    ctx.obj = Linehaul(table=table)
+
+
+@cli.command()
 @click.option("--bind", default="0.0.0.0")
 @click.option("--port", type=int, default=512)
 @click.option("--token")
-def main(bind, port, token):
+@pass_linehaul
+def serve(lh, bind, port, token):
     trio.run(
-        Linehaul(bind=bind, port=port, token=token),
-        restrict_keyboard_interrupt_to_checkpoints=True,
+        lh.serve, bind, port, token, restrict_keyboard_interrupt_to_checkpoints=True
     )
+
+
+@cli.command()
+@pass_linehaul
+def migrate(lh):
+    trio.run(lh.migrate)
