@@ -1,0 +1,171 @@
+[
+    {
+        "name": "timestamp",
+        "type": "TIMESTAMP",
+        "mode": "REQUIRED"
+    },
+    {
+        "name": "country_code",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "url",
+        "type": "STRING",
+        "mode": "REQUIRED"
+    },
+    {
+        "name": "file",
+        "type": "RECORD",
+        "mode": "REQUIRED",
+        "fields": [
+            {
+                "name": "filename",
+                "type": "STRING",
+                "mode": "REQUIRED"
+            },
+            {
+                "name": "project",
+                "type": "STRING",
+                "mode": "REQUIRED"
+            },
+            {
+                "name": "version",
+                "type": "STRING",
+                "mode": "REQUIRED"
+            },
+            {
+                "name": "type",
+                "type": "STRING",
+                "mode": "REQUIRED"
+            }
+        ]
+    },
+    {
+        "name": "details",
+        "type": "RECORD",
+        "mode": "NULLABLE",
+        "fields": [
+            {
+                "name": "installer",
+                "type": "RECORD",
+                "mode": "NULLABLE",
+                "fields": [
+                    {
+                        "name": "name",
+                        "type": "STRING",
+                        "mode": "NULLABLE"
+                    },
+                    {
+                        "name": "version",
+                        "type": "STRING",
+                        "mode": "NULLABLE"
+                    }
+                ]
+            },
+            {
+                "name": "python",
+                "type": "STRING",
+                "mode": "NULLABLE"
+            },
+            {
+                "name": "implementation",
+                "type": "RECORD",
+                "mode": "NULLABLE",
+                "fields": [
+                    {
+                        "name": "name",
+                        "type": "STRING",
+                        "mode": "NULLABLE"
+                    },
+                    {
+                        "name": "version",
+                        "type": "STRING",
+                        "mode": "NULLABLE"
+                    }
+                ]
+            },
+            {
+                "name": "distro",
+                "type": "RECORD",
+                "mode": "NULLABLE",
+                "fields": [
+                    {
+                        "name": "name",
+                        "type": "STRING",
+                        "mode": "NULLABLE"
+                    },
+                    {
+                        "name": "version",
+                        "type": "STRING",
+                        "mode": "NULLABLE"
+                    },
+                    {
+                        "name": "id",
+                        "type": "STRING",
+                        "mode": "NULLABLE"
+                    },
+                    {
+                        "name": "libc",
+                        "type": "RECORD",
+                        "mode": "NULLABLE",
+                        "fields": [
+                            {
+                                "name": "lib",
+                                "type": "STRING",
+                                "mode": "NULLABLE"
+                            },
+                            {
+                                "name": "version",
+                                "type": "STRING",
+                                "mode": "NULLABLE"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "system",
+                "type": "RECORD",
+                "mode": "NULLABLE",
+                "fields": [
+                    {
+                        "name": "name",
+                        "type": "STRING",
+                        "mode": "NULLABLE"
+                    },
+                    {
+                        "name": "release",
+                        "type": "STRING",
+                        "mode": "NULLABLE"
+                    }
+                ]
+            },
+            {
+                "name": "cpu",
+                "type": "STRING",
+                "mode": "NULLABLE"
+            },
+            {
+                "name": "openssl_version",
+                "type": "STRING",
+                "mode": "NULLABLE"
+            },
+            {
+                "name": "setuptools_version",
+                "type": "STRING",
+                "mode": "NULLABLE"
+            }
+        ]
+    },
+    {
+      "name": "tls_protocol",
+      "type": "STRING",
+      "mode": "NULLABLE"
+    },
+    {
+      "name": "tls_cipher",
+      "type": "STRING",
+      "mode": "NULLABLE"
+    }
+]
