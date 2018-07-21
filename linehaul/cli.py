@@ -46,6 +46,12 @@ def cli():
 
 @cli.command(short_help="Runs the Linehaul server.")
 @click.option(
+    "--credentials",
+    type=click.File("r", encoding="utf8"),
+    required=True,
+    help="A path to the credentials JSON for a GCP service account.",
+)
+@click.option(
     "--bind", default="0.0.0.0", show_default=True, help="The IP address to bind to."
 )
 @click.option(
@@ -53,10 +59,11 @@ def cli():
 )
 @click.option("--token", help="A token used to authenticate a remote syslog stream.")
 @click.option(
-    "--credentials",
-    type=click.File("r", encoding="utf8"),
-    required=True,
-    help="A path to the credentials JSON for a GCP service account.",
+    "--queued-events",
+    type=int,
+    default=10000,
+    show_default=True,
+    help="How many events to queue for processing before applying backpressure.",
 )
 @click.option(
     "--batch-size",
@@ -82,23 +89,16 @@ def cli():
     show_default=True,
     help="How long to wait for a single API call to BigQuery to complete.",
 )
-@click.option(
-    "--queued-events",
-    type=int,
-    default=10000,
-    show_default=True,
-    help="How many events to queue for processing before applying backpressure.",
-)
 @click.argument("table")
 def server(
+    credentials,
     bind,
     port,
     token,
-    credentials,
+    queued_events,
     batch_size,
     batch_timeout,
     api_timeout,
-    queued_events,
     table,
 ):
     """
