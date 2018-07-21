@@ -16,12 +16,7 @@ dist/*.tar.gz
 dist/*.whl
 htmlcov/
 
-node_modules/
-
-dev/example.sql
-dev/prod.sql
-dev/prod.sql.xz
-./data/
+dev/GCP.json
 
 warehouse/.commit
 warehouse/static/components
