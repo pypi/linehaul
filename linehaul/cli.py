@@ -159,7 +159,7 @@ def cli(log_level):
 @click.option(
     "--retry-max-attempts",
     type=int,
-    default=15,
+    default=10,
     show_default=True,
     help="The maximum number of times to retry sending a batch to BigQuery.",
 )

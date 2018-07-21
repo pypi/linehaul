@@ -166,7 +166,7 @@ async def send_batch(
     **kwargs
 ):
     if retry_max_attempts is None:
-        retry_max_attempts = 15
+        retry_max_attempts = 10
     if retry_max_wait is None:
         retry_max_wait = 60
     if retry_multiplier is None:
