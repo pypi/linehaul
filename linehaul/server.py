@@ -71,7 +71,7 @@ def compute_batches(all_items):
 
         yield extract_item_date(items[0]), [
             {"insertId": str(uuid.uuid4()), "json": row}
-            for row in _cattr.unstructure(items[:1])
+            for row in _cattr.unstructure(items)
         ],
 
 
