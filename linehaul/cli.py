@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
+import binascii
 import importlib_resources
 import json
 import logging
@@ -35,14 +37,37 @@ asks.init("trio")
 logger = logging.getLogger(__name__)
 
 
-def _configure_bigquery(credentials, api_max_connections=None):
-    logger.debug("Configuring BigQuery from %r", credentials.name)
-    credentials = json.load(credentials)
+def _configure_bigquery(credentials_file, credentials_blob, api_max_connections=None):
+    if credentials_file is None and credentials_blob is None:
+        raise click.UsageError(
+            "Must pass either --credentials-file or --credentials-blob"
+        )
+    elif credentials_file is not None and credentials_blob is not None:
+        raise click.UsageError(
+            "Cannot pass both --credentials-file and --credentials-blob"
+        )
+    elif credentials_file is not None:
+        logger.debug("Configuring BigQuery from %r", credentials_file.name)
+        credentials = json.load(credentials_file)
+    else:
+        logger.debug("Configuring BigQuery from base64 blob")
+        credentials = json.loads(credentials_blob)
+
     return BigQuery(
         credentials["client_email"],
         credentials["private_key"],
         max_connections=api_max_connections,
     )
+
+
+def _validate_base64(ctx, param, value):
+    if value is not None:
+        try:
+            return base64.b64decode(value)
+        except binascii.Error:
+            raise click.BadParameter(
+                "credentials-blob needs to be a base64 encoded json blob."
+            )
 
 
 @click.group(
@@ -94,10 +119,14 @@ def cli(log_level):
 
 @cli.command(short_help="Runs the Linehaul server.")
 @click.option(
-    "--credentials",
+    "--credentials-file",
     type=click.File("r", encoding="utf8"),
-    required=True,
     help="A path to the credentials JSON for a GCP service account.",
+)
+@click.option(
+    "--credentials-blob",
+    callback=_validate_base64,
+    help="A base64 encoded JSON blob of credentials for a GCP service account.",
 )
 @click.option(
     "--bind",
@@ -202,7 +231,8 @@ def cli(log_level):
 )
 @click.argument("table")
 def server(
-    credentials,
+    credentials_file,
+    credentials_blob,
     bind,
     port,
     token,
@@ -224,7 +254,9 @@ def server(
 
     TABLE is a BigQuery table identifier of the form ProjectId.DataSetId.TableId.
     """
-    bq = _configure_bigquery(credentials, api_max_connections=api_max_connections)
+    bq = _configure_bigquery(
+        credentials_file, credentials_blob, api_max_connections=api_max_connections
+    )
 
     # Iterate over all of our configuration, and write out the values to the debug
     # logger to make it easier to see if linehaul is picking up a particular
@@ -272,13 +304,17 @@ def server(
 
 @cli.command()
 @click.option(
-    "--credentials",
+    "--credentials-file",
     type=click.File("r", encoding="utf8"),
-    required=True,
     help="A path to the credentials JSON for a GCP service account.",
 )
+@click.option(
+    "--credentials-blob",
+    callback=_validate_base64,
+    help="A base64 encoded JSON blob of credentials for a GCP service account.",
+)
 @click.argument("table")
-def migrate(credentials, table):
+def migrate(credentials_file, credentials_blob, table):
     """
     Synchronizes the BigQuery table schema.
 
