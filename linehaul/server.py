@@ -103,8 +103,11 @@ async def handle_connection(stream, q, token=None):
     stop=tenacity.stop_after_attempt(15),
     reraise=True,
 )
-async def actually_send_batch(bq, table, template_suffix, batch):
-    with trio.fail_after(15):  # TODO: Is 15 seconds a good value?
+async def actually_send_batch(bq, table, template_suffix, batch, api_timeout=None):
+    if api_timeout is None:
+        api_timeout = 15
+
+    with trio.fail_after(api_timeout):
         await bq.insert_all(table, batch, template_suffix)
 
 
@@ -125,7 +128,9 @@ async def send_batch(*args, **kwargs):
         pass
 
 
-async def sender(bq, table, q, *, batch_size=None, batch_timeout=None):
+async def sender(
+    bq, table, q, *, batch_size=None, batch_timeout=None, api_timeout=None
+):
     if batch_size is None:
         batch_size = 3  # TODO: Change to 500
     if batch_timeout is None:
@@ -139,7 +144,16 @@ async def sender(bq, table, q, *, batch_size=None, batch_timeout=None):
                     batch.append(await q.get())
 
             for template_suffix, batch in compute_batches(batch):
-                nursery.start_soon(send_batch, bq, table, template_suffix, batch)
+                nursery.start_soon(
+                    partial(
+                        send_batch,
+                        bq,
+                        table,
+                        template_suffix,
+                        batch,
+                        api_timeout=api_timeout,
+                    )
+                )
 
 
 #
@@ -156,6 +170,7 @@ async def server(
     qsize=10000,
     batch_size=None,
     batch_timeout=None,
+    api_timeout=None,
     task_status=trio.TASK_STATUS_IGNORED,
 ):
     # Total number of buffered events is:
@@ -169,7 +184,13 @@ async def server(
     async with trio.open_nursery() as nursery:
         nursery.start_soon(
             partial(
-                sender, bq, table, q, batch_size=batch_size, batch_timeout=batch_timeout
+                sender,
+                bq,
+                table,
+                q,
+                batch_size=batch_size,
+                batch_timeout=batch_timeout,
+                api_timeout=api_timeout,
             )
         )
 

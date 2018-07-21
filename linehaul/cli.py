@@ -76,6 +76,13 @@ def cli():
     ),
 )
 @click.option(
+    "--api-timeout",
+    type=int,
+    default=30,
+    show_default=True,
+    help="How long to wait for a single API call to BigQuery to complete.",
+)
+@click.option(
     "--queued-events",
     type=int,
     default=10000,
@@ -84,7 +91,15 @@ def cli():
 )
 @click.argument("table")
 def server(
-    bind, port, token, credentials, batch_size, batch_timeout, queued_events, table
+    bind,
+    port,
+    token,
+    credentials,
+    batch_size,
+    batch_timeout,
+    api_timeout,
+    queued_events,
+    table,
 ):
     """
     Starts a server in the foreground that listens for incoming syslog events, processes
@@ -106,6 +121,7 @@ def server(
             qsize=queued_events,
             batch_size=batch_size,
             batch_timeout=batch_timeout,
+            api_timeout=api_timeout,
         ),
         restrict_keyboard_interrupt_to_checkpoints=True,
     )
