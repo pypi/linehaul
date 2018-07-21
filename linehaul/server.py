@@ -13,10 +13,10 @@
 import itertools
 import uuid
 
+from functools import partial
 from typing import Optional
 
 import arrow
-import attr
 import cattr
 import trio
 
@@ -29,52 +29,42 @@ _cattr = cattr.Converter()
 _cattr.register_unstructure_hook(arrow.Arrow, lambda o: o.float_timestamp)
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
-class LinehaulParser:
+def _parse_line(line: bytes, token=None) -> Optional[_event_parser.Download]:
+    line = line.decode("utf8")
 
-    token: Optional[str] = None
-
-    def __call__(self, line: bytes) -> Optional[_event_parser.Download]:
-        line = line.decode("utf8")
-
-        # Check our token, and remove it from the start of the line if it matches.
-        if self.token is not None:
-            # TODO: Use a Constant Time Compare?
-            if not line.startswith(self.token):
-                return
-            line = line[len(self.token) :]
-
-        # Parse the incoming Syslog Message, and get the download event out of it.
-        try:
-            msg = _syslog_parser.parse(line)
-            event = _event_parser.parse(msg.message)
-        except ValueError:
-            # TODO: Better Error Logging.
+    # Check our token, and remove it from the start of the line if it matches.
+    if token is not None:
+        # TODO: Use a Constant Time Compare?
+        if not line.startswith(token):
             return
+        line = line[len(token) :]
 
-        return event
+    # Parse the incoming Syslog Message, and get the download event out of it.
+    try:
+        msg = _syslog_parser.parse(line)
+        event = _event_parser.parse(msg.message)
+    except ValueError:
+        # TODO: Better Error Logging.
+        return
+
+    return event
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
-class LinehaulHandler:
+async def _handle_connection(stream, q, token=None):
+    lr = LineReceiver(partial(_parse_line, token=token))
 
-    _incoming: trio.Queue
-    token: Optional[str] = None
+    while True:
+        try:
+            data: bytes = await stream.receive_some(1024)
+        except trio.BrokenStreamError:
+            data = b""
 
-    async def __call__(self, stream):
-        lr = LineReceiver(LinehaulParser(token=self.token))
-        while True:
-            try:
-                data: bytes = await stream.receive_some(1024)
-            except trio.BrokenStreamError:
-                data = b""
+        if not data:
+            lr.close()
+            break
 
-            if not data:
-                lr.close()
-                break
-
-            for msg in lr.recieve_data(data):
-                await self._incoming.put(msg)
+        for msg in lr.recieve_data(data):
+            await q.put(msg)
 
 
 async def collector(incoming, outgoing):
@@ -137,7 +127,7 @@ async def server(
             nursery.start_soon(sender, outgoing, bq, table)
 
         await nursery.start(
-            trio.serve_tcp, LinehaulHandler(incoming, token=token), port
+            trio.serve_tcp, partial(_handle_connection, q=incoming, token=token), port
         )
 
         task_status.started()
