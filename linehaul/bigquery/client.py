@@ -62,10 +62,13 @@ class BigQuery:
 
     _base_location = "https://www.googleapis.com"
 
-    def __init__(self, account, private_key, *args, **kwargs):
+    def __init__(self, account, private_key, *args, max_connections=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._session = asks.Session(connections=20)
+        if max_connections is None:
+            max_connections = 30
+
+        self._session = asks.Session(connections=max_connections)
         self._auth = _BigQueryAuthentication(self._session, account, private_key)
 
     def _make_url(self, path):

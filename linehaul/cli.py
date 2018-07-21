@@ -145,6 +145,13 @@ def cli():
     show_default=True,
     help="How long to wait for a single API call to BigQuery to complete.",
 )
+@click.option(
+    "--api-max-connections",
+    type=int,
+    default=30,
+    show_default=True,
+    help="Maximum number of concurrent connections to BigQuery.",
+)
 @click.argument("table")
 def server(
     credentials,
@@ -160,6 +167,7 @@ def server(
     retry_max_wait,
     retry_multiplier,
     api_timeout,
+    api_max_connections,
     table,
 ):
     """
@@ -169,7 +177,11 @@ def server(
     TABLE is a BigQuery table identifier of the form ProjectId.DataSetId.TableId.
     """
     credentials = json.load(credentials)
-    bq = BigQuery(credentials["client_email"], credentials["private_key"])
+    bq = BigQuery(
+        credentials["client_email"],
+        credentials["private_key"],
+        max_connections=api_max_connections,
+    )
 
     trio.run(
         partial(
