@@ -11,6 +11,7 @@
 # limitations under the License.
 
 import itertools
+import logging
 import uuid
 
 from functools import partial
@@ -24,6 +25,10 @@ import trio
 from linehaul.events import parser as _event_parser
 from linehaul.protocol import LineReceiver
 from linehaul.syslog import parser as _syslog_parser
+from linehaul.logging import SPEW as log_SPEW
+
+
+logger = logging.getLogger(__name__)
 
 
 retry = partial(tenacity.retry, sleep=trio.sleep)
@@ -84,6 +89,16 @@ async def handle_connection(stream, q, token=None, max_line_size=None, recv_size
     if recv_size is None:
         recv_size = 8192
 
+    # Sometimes if a connection is open, and closes really fast, we can call this
+    # after the peer has disconnected, making this an error. In those cases we'll
+    # just log what we have.
+    peer_id = uuid.uuid4()
+    try:
+        peer, *_ = stream.socket.getpeername()
+    except OSError:
+        peer = "Unknown"
+    logger.debug("{%s}: Connection received from %r.", peer_id, peer)
+
     lr = LineReceiver(partial(parse_line, token=token), max_line_size=max_line_size)
 
     while True:
@@ -93,14 +108,20 @@ async def handle_connection(stream, q, token=None, max_line_size=None, recv_size
             data = b""
 
         if not data:
+            logger.debug("{%s}: Connection lost from %r.", peer_id, peer)
             lr.close()
             break
 
-        for msg in lr.recieve_data(data):
-            await q.put(msg)
+        for event in lr.recieve_data(data):
+            logger.log(log_SPEW, "{%s}: Received Event: %r", peer_id, event)
+            await q.put(event)
 
 
-@retry(retry=tenacity.retry_if_exception_type(trio.TooSlowError), reraise=True)
+@retry(
+    retry=tenacity.retry_if_exception_type(trio.TooSlowError),
+    reraise=True,
+    before_sleep=tenacity.before_sleep_log(logger, logging.WARNING),
+)
 async def actually_send_batch(bq, table, template_suffix, batch, api_timeout=None):
     if api_timeout is None:
         api_timeout = 15
@@ -110,7 +131,15 @@ async def actually_send_batch(bq, table, template_suffix, batch, api_timeout=Non
 
 
 async def send_batch(
-    *args, retry_max_attempts=None, retry_max_wait=None, retry_multiplier=None, **kwargs
+    bq,
+    table,
+    template_suffix,
+    batch,
+    *args,
+    retry_max_attempts=None,
+    retry_max_wait=None,
+    retry_multiplier=None,
+    **kwargs
 ):
     if retry_max_attempts is None:
         retry_max_attempts = 15
@@ -132,14 +161,15 @@ async def send_batch(
 
     try:
 
-        await send(*args, **kwargs)
+        await send(bq, table, template_suffix, batch, *args, **kwargs)
+    # We've tried to send this batch to BigQuery, however for one reason or another
+    # we were unable to do so. We should log this error, but otherwise we're going
+    # to just drop this on the floor because there's not much else we can do here
+    # except buffer it forever (which is not a great idea).
+    except trio.TooSlowError:
+        logger.error("Timed out sending %d items; Dropping them.", len(batch))
     except Exception:
-        # We've tried to send this batch to BigQuery, however for one reason or another
-        # we were unable to do so. We should log this error, but otherwise we're going
-        # to just drop this on the floor because there's not much else we can do here
-        # except buffer it forever (which is not a great idea).
-        # TODO: Add Logging
-        pass
+        logger.exception("Error sending %d items; Dropping them.", len(batch))
 
 
 async def sender(
@@ -162,9 +192,14 @@ async def sender(
     async with trio.open_nursery() as nursery:
         while True:
             batch = []
-            with trio.move_on_after(batch_timeout):
+            with trio.move_on_after(batch_timeout) as cancel_scope:
                 while len(batch) < batch_size:
                     batch.append(await q.get())
+
+            if batch and cancel_scope.cancelled_caught:
+                logger.debug("Batch timed out; Sending %d items.", len(batch))
+            elif batch:
+                logger.debug("%d items accumulated, sending batch.", len(batch))
 
             for template_suffix, batch in compute_batches(batch):
                 nursery.start_soon(
@@ -240,4 +275,5 @@ async def server(
             port,
         )
 
+        logging.info("Listening on %s:%d and sending to %r", bind, port, table)
         task_status.started()

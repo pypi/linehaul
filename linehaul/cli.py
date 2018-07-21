@@ -26,6 +26,9 @@ from linehaul.migration import migrate as migrate_
 from linehaul.server import server as server_
 
 
+SENSITIVE = {"token"}
+
+
 asks.init("trio")
 
 
@@ -33,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 def _configure_bigquery(credentials, api_max_connections=None):
-    logger.info("Configuring BigQuery from %r", credentials.name)
+    logger.debug("Configuring BigQuery from %r", credentials.name)
     credentials = json.load(credentials)
     return BigQuery(
         credentials["client_email"],
@@ -51,7 +54,7 @@ def _configure_bigquery(credentials, api_max_connections=None):
 )
 @click.option(
     "--log-level",
-    type=click.Choice(["debug", "info", "warning", "error", "critical"]),
+    type=click.Choice(["spew", "debug", "info", "warning", "error", "critical"]),
     default="info",
     show_default=True,
     help="The verbosity of the console logger.",
@@ -84,7 +87,7 @@ def cli(log_level):
                     "formatter": "console",
                 }
             },
-            "root": {"level": "DEBUG", "handlers": ["console"]},
+            "root": {"level": "SPEW", "handlers": ["console"]},
         }
     )
 
@@ -221,10 +224,34 @@ def server(
 
     TABLE is a BigQuery table identifier of the form ProjectId.DataSetId.TableId.
     """
+    bq = (_configure_bigquery(credentials, api_max_connections=api_max_connections),)
+
+    # Iterate over all of our configuration, and write out the values to the debug
+    # logger to make it easier to see if linehaul is picking up a particular
+    # configuration or not.
+    for key, value in dict(
+        bind=bind,
+        port=port,
+        token=token,
+        max_line_size=max_line_size,
+        recv_size=recv_size,
+        qsize=queued_events,
+        batch_size=batch_size,
+        batch_timeout=batch_timeout,
+        retry_max_attempts=retry_max_attempts,
+        retry_max_wait=retry_max_wait,
+        retry_multiplier=retry_multiplier,
+        api_timeout=api_timeout,
+    ).items():
+        if key in SENSITIVE:
+            value = "*" * 10
+        logging.debug("Configuring %s to %r", key, value)
+
+    # Actually run our server via trio.
     trio.run(
         partial(
             server_,
-            _configure_bigquery(credentials, api_max_connections=api_max_connections),
+            bq,
             table,
             bind=bind,
             port=port,
