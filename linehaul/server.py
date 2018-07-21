@@ -29,6 +29,10 @@ _cattr = cattr.Converter()
 _cattr.register_unstructure_hook(arrow.Arrow, lambda o: o.float_timestamp)
 
 
+#
+# Non I/O Functions
+#
+
 def _parse_line(line: bytes, token=None) -> Optional[_event_parser.Download]:
     line = line.decode("utf8")
 
@@ -48,6 +52,27 @@ def _parse_line(line: bytes, token=None) -> Optional[_event_parser.Download]:
         return
 
     return event
+
+
+def _extract_item_date(item):
+    return item.timestamp.format("YYYYMDDD")
+
+
+def compute_batches(all_items):
+    for date, items in itertools.groupby(
+        sorted(all_items, key=_extract_item_date), _extract_item_date
+    ):
+        items = list(items)
+
+        yield _extract_item_date(items[0]), [
+            {"insertId": str(uuid.uuid4()), "json": row}
+            for row in _cattr.unstructure(items[:1])
+        ],
+
+
+#
+# I/O Functions
+#
 
 
 async def _handle_connection(stream, q, token=None):
@@ -80,22 +105,6 @@ async def collector(incoming, outgoing):
             to_send = []
 
 
-def _extract_item_date(item):
-    return item.timestamp.format("YYYYMDDD")
-
-
-def compute_batches(all_items):
-    for date, items in itertools.groupby(
-        sorted(all_items, key=_extract_item_date), _extract_item_date
-    ):
-        items = list(items)
-
-        yield _extract_item_date(items[0]), [
-            {"insertId": str(uuid.uuid4()), "json": row}
-            for row in _cattr.unstructure(items[:1])
-        ],
-
-
 async def sender(outgoing, bq, table):
     while True:
         to_send = await outgoing.get()
@@ -107,6 +116,11 @@ async def sender(outgoing, bq, table):
         if cancel_scope.cancelled_caught:
             # TODO: Log an error that we took too long trying to send data to BigQuery
             pass
+
+
+#
+# Main Entry point
+#
 
 
 async def server(
