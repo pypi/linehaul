@@ -108,14 +108,14 @@ async def handle_connection(stream, q, token=None, max_line_size=None, recv_size
             except trio.BrokenStreamError:
                 data = b""
 
+            for event in lr.recieve_data(data):
+                logger.log(log_SPEW, "{%s}: Received Event: %r", peer_id, event)
+                await q.put(event)
+
             if not data:
                 logger.debug("{%s}: Connection lost from %r.", peer_id, peer)
                 lr.close()
                 break
-
-            for event in lr.recieve_data(data):
-                logger.log(log_SPEW, "{%s}: Received Event: %r", peer_id, event)
-                await q.put(event)
     except BufferTooLargeError:
         logger.debug("{%s}: Buffer too large; Dropping connection.", peer_id)
     except TruncatedLineError as exc:
