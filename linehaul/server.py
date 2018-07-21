@@ -125,10 +125,24 @@ async def handle_connection(stream, q, token=None, max_line_size=None, recv_size
             await stream.aclose()
 
 
+def log_retries(logger):
+    def log_it(retry_obj, sleep, last_result):
+        level = min([logging.WARNING, 10 * retry_obj.statistics.get("attempt_number", 1)])
+        logger.log(
+            level,
+            "Retrying %s in %2d seconds (attempt %2d).",
+            retry_obj.fn.__qualname__,
+            sleep,
+            retry_obj.statistics.get("attempt_number", None),
+        )
+
+    return log_it
+
+
 @retry(
     retry=tenacity.retry_if_exception_type((trio.TooSlowError, trio.BrokenStreamError)),
     reraise=True,
-    before_sleep=tenacity.before_sleep_log(logger, logging.WARNING),
+    before_sleep=log_retries(logger),
 )
 async def actually_send_batch(bq, table, template_suffix, batch, api_timeout=None):
     if api_timeout is None:
