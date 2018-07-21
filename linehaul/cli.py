@@ -68,6 +68,14 @@ def cli():
 )
 @click.option("--token", help="A token used to authenticate a remote syslog stream.")
 @click.option(
+    "--recv-size",
+    type=int,
+    default=8192,
+    metavar="BYTES",
+    show_default=True,
+    help="How many bytes to read per recv.",
+)
+@click.option(
     "--queued-events",
     type=int,
     default=10000,
@@ -106,6 +114,7 @@ def server(
     bind,
     port,
     token,
+    recv_size,
     queued_events,
     batch_size,
     batch_timeout,
@@ -129,6 +138,7 @@ def server(
             bind=bind,
             port=port,
             token=token,
+            recv_size=recv_size,
             qsize=queued_events,
             batch_size=batch_size,
             batch_timeout=batch_timeout,
