@@ -38,7 +38,7 @@ _cattr.register_unstructure_hook(arrow.Arrow, lambda o: o.float_timestamp)
 #
 
 
-def _parse_line(line: bytes, token=None) -> Optional[_event_parser.Download]:
+def parse_line(line: bytes, token=None) -> Optional[_event_parser.Download]:
     line = line.decode("utf8")
 
     # Check our token, and remove it from the start of the line if it matches.
@@ -59,17 +59,17 @@ def _parse_line(line: bytes, token=None) -> Optional[_event_parser.Download]:
     return event
 
 
-def _extract_item_date(item):
+def extract_item_date(item):
     return item.timestamp.format("YYYYMDDD")
 
 
 def compute_batches(all_items):
     for date, items in itertools.groupby(
-        sorted(all_items, key=_extract_item_date), _extract_item_date
+        sorted(all_items, key=extract_item_date), extract_item_date
     ):
         items = list(items)
 
-        yield _extract_item_date(items[0]), [
+        yield extract_item_date(items[0]), [
             {"insertId": str(uuid.uuid4()), "json": row}
             for row in _cattr.unstructure(items[:1])
         ],
@@ -80,8 +80,8 @@ def compute_batches(all_items):
 #
 
 
-async def _handle_connection(stream, q, token=None):
-    lr = LineReceiver(partial(_parse_line, token=token))
+async def handle_connection(stream, q, token=None):
+    lr = LineReceiver(partial(parse_line, token=token))
 
     while True:
         try:
@@ -172,7 +172,7 @@ async def server(
         )
 
         await nursery.start(
-            trio.serve_tcp, partial(_handle_connection, q=q, token=token), port
+            trio.serve_tcp, partial(handle_connection, q=q, token=token), port
         )
 
         task_status.started()
