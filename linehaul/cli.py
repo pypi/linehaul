@@ -27,23 +27,71 @@ from linehaul.server import server as server_
 asks.init("trio")
 
 
-@click.group(context_settings={"auto_envvar_prefix": "LINEHAUL"})
+@click.group(
+    context_settings={
+        "auto_envvar_prefix": "LINEHAUL",
+        "help_option_names": ["-h", "--help"],
+        "max_content_width": 88,
+    }
+)
 def cli():
-    pass
+    """
+    The Linehaul Statistics Daemon.
+
+    Linehaul is a daemon that implements the syslog protocol, and listens for specially
+    formatted messages corresponding to download events of Python packages. For each
+    event it receives it processes them, and then loads them into a BigQuery database.
+    """
 
 
-@cli.command()
-@click.option("--bind", default="0.0.0.0")
-@click.option("--port", type=int, default=512)
-@click.option("--token")
-@click.option("--credentials", type=click.File("r", encoding="utf8"), required=True)
-@click.option("--batch-size", type=int, default=3)  # TODO: Change to 500
-@click.option("--batch-timeout", type=int, default=30)
-@click.option("--queued-events", type=int, default=10000)
+@cli.command(short_help="Runs the Linehaul server.")
+@click.option(
+    "--bind", default="0.0.0.0", show_default=True, help="The IP address to bind to."
+)
+@click.option(
+    "--port", type=int, default=512, show_default=True, help="The port to bind to."
+)
+@click.option("--token", help="A token used to authenticate a remote syslog stream.")
+@click.option(
+    "--credentials",
+    type=click.File("r", encoding="utf8"),
+    required=True,
+    help="A path to the credentials JSON for a GCP service account.",
+)
+@click.option(
+    "--batch-size",
+    type=int,
+    default=500,
+    show_default=True,
+    help="The number of events to send in each BigQuery API call.",
+)
+@click.option(
+    "--batch-timeout",
+    type=int,
+    default=30,
+    show_default=True,
+    help=(
+        "How long to wait before sending a smaller than --batch-size batch of events "
+        "to BigQuery."
+    ),
+)
+@click.option(
+    "--queued-events",
+    type=int,
+    default=10000,
+    show_default=True,
+    help="How many events to queue for processing before applying backpressure.",
+)
 @click.argument("table")
 def server(
     bind, port, token, credentials, batch_size, batch_timeout, queued_events, table
 ):
+    """
+    Starts a server in the foreground that listens for incoming syslog events, processes
+    them, and then inserts them into the BigQuery table at TABLE.
+
+    TABLE is a BigQuery table identifier of the form ProjectId.DataSetId.TableId.
+    """
     credentials = json.load(credentials)
     bq = BigQuery(credentials["client_email"], credentials["private_key"])
 
@@ -64,9 +112,19 @@ def server(
 
 
 @cli.command()
-@click.option("--credentials", type=click.File("r", encoding="utf8"), required=True)
+@click.option(
+    "--credentials",
+    type=click.File("r", encoding="utf8"),
+    required=True,
+    help="A path to the credentials JSON for a GCP service account.",
+)
 @click.argument("table")
 def migrate(credentials, table):
+    """
+    Synchronizes the BigQuery table schema.
+
+    TABLE is a BigQuery table identifier of the form ProjectId.DataSetId.TableId.
+    """
     credentials = json.load(credentials)
     bq = BigQuery(credentials["client_email"], credentials["private_key"])
     schema = json.loads(importlib_resources.read_text("linehaul", "schema.json"))
