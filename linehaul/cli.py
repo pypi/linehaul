@@ -52,10 +52,19 @@ def cli():
     help="A path to the credentials JSON for a GCP service account.",
 )
 @click.option(
-    "--bind", default="0.0.0.0", show_default=True, help="The IP address to bind to."
+    "--bind",
+    default="0.0.0.0",
+    metavar="ADDR",
+    show_default=True,
+    help="The IP address to bind to.",
 )
 @click.option(
-    "--port", type=int, default=512, show_default=True, help="The port to bind to."
+    "--port",
+    type=int,
+    default=512,
+    metavar="PORT",
+    show_default=True,
+    help="The port to bind to.",
 )
 @click.option("--token", help="A token used to authenticate a remote syslog stream.")
 @click.option(
@@ -76,6 +85,7 @@ def cli():
     "--batch-timeout",
     type=int,
     default=30,
+    metavar="SECONDS",
     show_default=True,
     help=(
         "How long to wait before sending a smaller than --batch-size batch of events "
@@ -86,6 +96,7 @@ def cli():
     "--api-timeout",
     type=int,
     default=30,
+    metavar="SECONDS",
     show_default=True,
     help="How long to wait for a single API call to BigQuery to complete.",
 )
