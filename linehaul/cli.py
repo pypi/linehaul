@@ -13,6 +13,8 @@
 import importlib_resources
 import json
 
+from functools import partial
+
 import asks
 import click
 import trio
@@ -35,18 +37,29 @@ def cli():
 @click.option("--port", type=int, default=512)
 @click.option("--token")
 @click.option("--credentials", type=click.File("r", encoding="utf8"), required=True)
+@click.option("--batch-size", type=int, default=3)  # TODO: Change to 500
+@click.option("--batch-timeout", type=int, default=30)
+# TODO: Determine the best default size for this queue size.
+@click.option("--queued-events", type=int, default=1000)
 @click.argument("table")
-def server(bind, port, token, credentials, table):
+def server(
+    bind, port, token, credentials, batch_size, batch_timeout, queued_events, table
+):
     credentials = json.load(credentials)
     bq = BigQuery(credentials["client_email"], credentials["private_key"])
 
     trio.run(
-        server_,
-        bq,
-        table,
-        bind,
-        port,
-        token,
+        partial(
+            server_,
+            bq,
+            table,
+            bind=bind,
+            port=port,
+            token=token,
+            qsize=queued_events,
+            batch_size=batch_size,
+            batch_timeout=batch_timeout,
+        ),
         restrict_keyboard_interrupt_to_checkpoints=True,
     )
 

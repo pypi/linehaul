@@ -33,6 +33,7 @@ _cattr.register_unstructure_hook(arrow.Arrow, lambda o: o.float_timestamp)
 # Non I/O Functions
 #
 
+
 def _parse_line(line: bytes, token=None) -> Optional[_event_parser.Download]:
     line = line.decode("utf8")
 
@@ -102,12 +103,17 @@ async def send_batch(bq, table, outgoing):
         pass
 
 
-async def sender(bq, table, q):
+async def sender(bq, table, q, *, batch_size=None, batch_timeout=None):
+    if batch_size is None:
+        batch_size = 3  # TODO: Change to 500
+    if batch_timeout is None:
+        batch_timeout = 30
+
     async with trio.open_nursery() as nursery:
         while True:
             batch = []
-            with trio.move_on_after(30):
-                while len(batch) < 3:  # TODO: Change to 500
+            with trio.move_on_after(batch_timeout):
+                while len(batch) < batch_size:
                     batch.append(await q.get())
 
             nursery.start_soon(send_batch, bq, table, batch)
@@ -124,12 +130,25 @@ async def server(
     bind="0.0.0.0",
     port=512,
     token=None,
+    qsize=1000,  # TODO: Determine the best default size for this queue.
+    batch_size=None,
+    batch_timeout=None,
     task_status=trio.TASK_STATUS_IGNORED,
 ):
-    q = trio.Queue(1000)
+    # Total number of buffered events is:
+    #       qsize + (COUNT(send_batch) * batch_size)
+    # However, the length of time a single send_batch call sticks around for is time
+    # boxed, so this won't grow forever. It will not however, apply any backpressure
+    # to the sender (we can't meaningfully apply backpressure, since these are download
+    # events being streamed to us).
+    q = trio.Queue(qsize)
 
     async with trio.open_nursery() as nursery:
-        nursery.start_soon(sender, bq, table, q)
+        nursery.start_soon(
+            partial(
+                sender, bq, table, q, batch_size=batch_size, batch_timeout=batch_timeout
+            )
+        )
 
         await nursery.start(
             trio.serve_tcp, partial(_handle_connection, q=q, token=token), port
