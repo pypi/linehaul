@@ -12,6 +12,7 @@
 
 import importlib_resources
 import json
+import logging.config
 
 from functools import partial
 
@@ -34,7 +35,14 @@ asks.init("trio")
         "max_content_width": 88,
     }
 )
-def cli():
+@click.option(
+    "--log-level",
+    type=click.Choice(["debug", "info", "warning", "error", "critical"]),
+    default="info",
+    show_default=True,
+    help="The verbosity of the console logger.",
+)
+def cli(log_level):
     """
     The Linehaul Statistics Daemon.
 
@@ -42,6 +50,29 @@ def cli():
     formatted messages corresponding to download events of Python packages. For each
     event it receives it processes them, and then loads them into a BigQuery database.
     """
+    logging.config.dictConfig(
+        {
+            "version": 1,
+            "disable_existing_loggers": False,
+            "formatters": {
+                "console": {
+                    "class": "logging.Formatter",
+                    "style": "{",
+                    "format": "[{asctime}] [{levelname:^10}] {message}",
+                    "datefmt": "%Y-%m-%d %H:%M:%S",
+                }
+            },
+            "handlers": {
+                "console": {
+                    "class": "logging.StreamHandler",
+                    "stream": "ext://sys.stdout",
+                    "level": log_level.upper(),
+                    "formatter": "console",
+                }
+            },
+            "root": {"level": "DEBUG", "handlers": ["console"]},
+        }
+    )
 
 
 @cli.command(short_help="Runs the Linehaul server.")
