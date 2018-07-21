@@ -128,7 +128,7 @@ async def handle_connection(stream, q, token=None, max_line_size=None, recv_size
 def log_retries(logger):
     def log_it(retry_obj, sleep, last_result):
         level = min(
-            [logging.WARNING, 10 * retry_obj.statistics.get("attempt_number", 1)]
+            [logging.WARNING, (10 * retry_obj.statistics.get("attempt_number", 1)) - 10]
         )
         logger.log(
             level,
