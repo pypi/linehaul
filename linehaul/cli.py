@@ -39,8 +39,7 @@ def cli():
 @click.option("--credentials", type=click.File("r", encoding="utf8"), required=True)
 @click.option("--batch-size", type=int, default=3)  # TODO: Change to 500
 @click.option("--batch-timeout", type=int, default=30)
-# TODO: Determine the best default size for this queue size.
-@click.option("--queued-events", type=int, default=1000)
+@click.option("--queued-events", type=int, default=10000)
 @click.argument("table")
 def server(
     bind, port, token, credentials, batch_size, batch_timeout, queued_events, table

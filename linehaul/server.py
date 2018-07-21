@@ -153,7 +153,7 @@ async def server(
     bind="0.0.0.0",
     port=512,
     token=None,
-    qsize=1000,  # TODO: Determine the best default size for this queue.
+    qsize=10000,
     batch_size=None,
     batch_timeout=None,
     task_status=trio.TASK_STATUS_IGNORED,
