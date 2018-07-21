@@ -11,6 +11,10 @@
 # limitations under the License.
 
 import itertools
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 _sentinel = object()
@@ -57,11 +61,15 @@ def validate_schema(existing, desired):
 
 
 async def migrate(bq, table, new_schema):
+    logger.info("Fetching existing schema for %r.", table)
     current_schema = await bq.get_schema(table)
 
     # If we have an existing schema, then we need to diff it against our desired schema,
     # and ensure that all of the changes we're making are backwardscompatible.
     if current_schema is not None:
+        logger.info("Found existing schema, validating delta.")
         validate_schema(current_schema, new_schema)
 
+    logger.info("Updating schema.")
     await bq.update_schema(table, new_schema)
+    logger.info("Schema for %r updated.", table)

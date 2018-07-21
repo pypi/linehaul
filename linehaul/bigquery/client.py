@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import json
 import urllib.parse
 
@@ -24,6 +25,9 @@ GOOGLE_TOKEN_URL = "https://www.googleapis.com/oauth2/v4/token"
 BIGQUERY_SCOPE = "https://www.googleapis.com/auth/bigquery"
 
 
+logger = logging.getLogger(__name__)
+
+
 class _BigQueryAuthentication:
     def __init__(self, session, account, private_key):
         self._session = session
@@ -35,6 +39,8 @@ class _BigQueryAuthentication:
         )
 
     async def get_token(self):
+        logger.debug("Fetching OAuth2 token from %r", GOOGLE_TOKEN_URL)
+
         url, headers, body, = self._client.prepare_token_request(
             GOOGLE_TOKEN_URL, scope=BIGQUERY_SCOPE
         )
@@ -45,17 +51,21 @@ class _BigQueryAuthentication:
             # TODO: Better Error Handling.
             raise RuntimeError("Wat!!!")
 
+        logger.debug("Saving fetched OAuth2 token.")
         self._client.parse_request_body_response(resp.text)
 
-    async def authenticate(self, *args, **kwargs):
+    async def authenticate(self, url, *args, **kwargs):
+        logger.debug("Authenticating request for %r", url)
+
         if not self._client.access_token:
             await self.get_token()
 
         try:
-            return self._client.add_token(*args, **kwargs)
+            return self._client.add_token(url, *args, **kwargs)
         except TokenExpiredError:
+            logger.debug("OAuth2 token expired.")
             await self.get_token()
-            return self._client.add_token(*args, **kwargs)
+            return self._client.add_token(url, *args, **kwargs)
 
 
 class BigQuery:

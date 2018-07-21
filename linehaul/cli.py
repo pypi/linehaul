@@ -12,6 +12,7 @@
 
 import importlib_resources
 import json
+import logging
 import logging.config
 
 from functools import partial
@@ -26,6 +27,19 @@ from linehaul.server import server as server_
 
 
 asks.init("trio")
+
+
+logger = logging.getLogger(__name__)
+
+
+def _configure_bigquery(credentials, api_max_connections=None):
+    logger.info("Configuring BigQuery from %r", credentials.name)
+    credentials = json.load(credentials)
+    return BigQuery(
+        credentials["client_email"],
+        credentials["private_key"],
+        max_connections=api_max_connections,
+    )
 
 
 @click.group(
@@ -207,17 +221,10 @@ def server(
 
     TABLE is a BigQuery table identifier of the form ProjectId.DataSetId.TableId.
     """
-    credentials = json.load(credentials)
-    bq = BigQuery(
-        credentials["client_email"],
-        credentials["private_key"],
-        max_connections=api_max_connections,
-    )
-
     trio.run(
         partial(
             server_,
-            bq,
+            _configure_bigquery(credentials, api_max_connections=api_max_connections),
             table,
             bind=bind,
             port=port,
@@ -250,8 +257,7 @@ def migrate(credentials, table):
 
     TABLE is a BigQuery table identifier of the form ProjectId.DataSetId.TableId.
     """
-    credentials = json.load(credentials)
-    bq = BigQuery(credentials["client_email"], credentials["private_key"])
+    bq = _configure_bigquery(credentials)
     schema = json.loads(importlib_resources.read_text("linehaul", "schema.json"))
 
     trio.run(migrate_, bq, table, schema)
