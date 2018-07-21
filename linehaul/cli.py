@@ -26,6 +26,7 @@ import trio
 
 from linehaul.bigquery import BigQuery
 from linehaul.events import parser as _event_parser
+from linehaul.migration import migrate as _migrate
 from linehaul.protocol import LineReceiver
 from linehaul.syslog import parser as _syslog_parser
 
@@ -127,50 +128,6 @@ async def sender(outgoing, bq, table):
             pass
 
 
-_sentinel = object()
-
-
-def validate_schema(existing, desired):
-    # Loop over the existing schema, and the desired schema together, and look
-    # for differences.
-    for existing_item, desired_item in itertools.zip_longest(
-        existing, desired, fillvalue=_sentinel
-    ):
-        if desired_item is _sentinel:
-            raise ValueError("Cannot remove columns")
-        elif existing_item is _sentinel:
-            if desired_item["mode"] not in {"NULLABLE", "REPEATED"}:
-                raise ValueError(
-                    f"Cannot add non NULLABLE/REPEATED column "
-                    f"{desired_item['name']!r} to existing schema."
-                )
-        else:
-            if existing_item["name"] != desired_item["name"]:
-                raise ValueError(
-                    f"Found column named {desired_item['name']!r} in new schema when "
-                    f"expected column named {existing_item['name']!r}"
-                )
-
-            if existing_item["type"] != desired_item["type"]:
-                raise ValueError(
-                    f"Cannot change type of column {existing_item['name']!r} from "
-                    f"{existing_item['type']!r} to {desired_item['type']!r}."
-                )
-
-            if existing_item["mode"] != desired_item["mode"] and not (
-                existing_item["mode"] == "REQUIRED"
-                and desired_item["mode"] == "NULLABLE"
-            ):
-                raise ValueError(
-                    f"Cannot change mode of column {existing_item['name']!r} except "
-                    f"from REQUIRED to NULLABLE"
-                )
-
-            if existing_item["type"] == "RECORD":
-                # Recurse into the record and validate the sub schema
-                validate_schema(existing_item["fields"], desired_item["fields"])
-
-
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class Linehaul:
 
@@ -196,21 +153,9 @@ class Linehaul:
             task_status.started()
 
     async def migrate(self):
-        desired_schema = json.loads(
-            importlib_resources.read_text("linehaul", "schema.json")
+        await _migrate(
+            json.loads(importlib_resources.read_text("linehaul", "schema.json"))
         )
-        current_schema = await self.bigquery.get_schema(self.table)
-
-        # If we do not have a schema, then we ca simply send whatever schema we have
-        # set to BigQuery without worry about backwards incompatible changes.
-        if current_schema is None:
-            await self.bigquery.update_schema(self.table, desired_schema)
-        # However, if we have an existing schema, then we need to diff it against our
-        # desired schema, and ensure that all of the changes we're making are backwards
-        # compatible.
-        else:
-            validate_schema(current_schema, desired_schema)
-            await self.bigquery.update_schema(self.table, desired_schema)
 
 
 pass_linehaul = click.make_pass_decorator(Linehaul)
