@@ -103,16 +103,14 @@ async def send_batch(bq, table, outgoing):
 
 
 async def sender(bq, table, q):
-    to_send = []
-    while True:
-        with trio.move_on_after(30):
-            to_send.append(await q.get())
-            if len(to_send) < 3:  # TODO: Change to 500
-                continue
+    async with trio.open_nursery() as nursery:
+        while True:
+            batch = []
+            with trio.move_on_after(30):
+                while len(batch) < 3:  # TODO: Change to 500
+                    batch.append(await q.get())
 
-        if to_send:
-            await send_batch(bq, table, to_send)
-            to_send = []
+            nursery.start_soon(send_batch, bq, table, batch)
 
 
 #
