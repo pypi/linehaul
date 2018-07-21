@@ -92,30 +92,27 @@ async def _handle_connection(stream, q, token=None):
             await q.put(msg)
 
 
-async def collector(incoming, outgoing):
+async def send_batch(bq, table, outgoing):
+    with trio.move_on_after(120) as cancel_scope:
+        for template_suffix, batch in compute_batches(outgoing):
+            await bq.insert_all(table, batch, template_suffix)
+
+    if cancel_scope.cancelled_caught:
+        # TODO: Log an error that we took too long trying to send data to BigQuery
+        pass
+
+
+async def sender(bq, table, q):
     to_send = []
     while True:
         with trio.move_on_after(30):
-            to_send.append(await incoming.get())
+            to_send.append(await q.get())
             if len(to_send) < 3:  # TODO: Change to 500
                 continue
 
         if to_send:
-            await outgoing.put(to_send)
+            await send_batch(bq, table, to_send)
             to_send = []
-
-
-async def sender(outgoing, bq, table):
-    while True:
-        to_send = await outgoing.get()
-
-        with trio.move_on_after(120) as cancel_scope:
-            for template_suffix, batch in compute_batches(to_send):
-                await bq.insert_all(table, batch, template_suffix)
-
-        if cancel_scope.cancelled_caught:
-            # TODO: Log an error that we took too long trying to send data to BigQuery
-            pass
 
 
 #
@@ -131,17 +128,13 @@ async def server(
     token=None,
     task_status=trio.TASK_STATUS_IGNORED,
 ):
-    incoming = trio.Queue(1000)
-    outgoing = trio.Queue(10)  # Multiply by 500 to get total # of downloads
+    q = trio.Queue(1000)
 
     async with trio.open_nursery() as nursery:
-        nursery.start_soon(collector, incoming, outgoing)
-
-        for _ in range(10):
-            nursery.start_soon(sender, outgoing, bq, table)
+        nursery.start_soon(sender, bq, table, q)
 
         await nursery.start(
-            trio.serve_tcp, partial(_handle_connection, q=incoming, token=token), port
+            trio.serve_tcp, partial(_handle_connection, q=q, token=token), port
         )
 
         task_status.started()
