@@ -144,7 +144,7 @@ async def send_batch(
     if retry_max_attempts is None:
         retry_max_attempts = 15
     if retry_max_wait is None:
-        retry_max_wait = 300
+        retry_max_wait = 60
     if retry_multiplier is None:
         retry_multiplier = 0.5
 

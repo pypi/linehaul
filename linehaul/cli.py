@@ -166,7 +166,7 @@ def cli(log_level):
 @click.option(
     "--retry-max-wait",
     type=float,
-    default=300,
+    default=60,
     metavar="SECONDS",
     show_default=True,
     help=(
