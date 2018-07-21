@@ -118,7 +118,7 @@ async def handle_connection(stream, q, token=None, max_line_size=None, recv_size
 
 
 @retry(
-    retry=tenacity.retry_if_exception_type(trio.TooSlowError),
+    retry=tenacity.retry_if_exception_type((trio.TooSlowError, trio.BrokenStreamError)),
     reraise=True,
     before_sleep=tenacity.before_sleep_log(logger, logging.WARNING),
 )
