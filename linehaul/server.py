@@ -80,11 +80,11 @@ def compute_batches(all_items):
 #
 
 
-async def handle_connection(stream, q, token=None, recv_size=None):
+async def handle_connection(stream, q, token=None, max_line_size=None, recv_size=None):
     if recv_size is None:
         recv_size = 8192
 
-    lr = LineReceiver(partial(parse_line, token=token))
+    lr = LineReceiver(partial(parse_line, token=token), max_line_size=max_line_size)
 
     while True:
         try:
@@ -170,6 +170,7 @@ async def server(
     bind="0.0.0.0",
     port=512,
     token=None,
+    max_line_size=None,
     recv_size=None,
     qsize=10000,
     batch_size=None,
@@ -200,7 +201,13 @@ async def server(
 
         await nursery.start(
             trio.serve_tcp,
-            partial(handle_connection, q=q, token=token, recv_size=recv_size),
+            partial(
+                handle_connection,
+                q=q,
+                token=token,
+                max_line_size=max_line_size,
+                recv_size=recv_size,
+            ),
             port,
         )
 

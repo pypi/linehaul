@@ -68,6 +68,14 @@ def cli():
 )
 @click.option("--token", help="A token used to authenticate a remote syslog stream.")
 @click.option(
+    "--max-line-size",
+    type=int,
+    default=16384,
+    metavar="BYTES",
+    show_default=True,
+    help="The maximum length in bytes of a single incoming syslog event.",
+)
+@click.option(
     "--recv-size",
     type=int,
     default=8192,
@@ -114,6 +122,7 @@ def server(
     bind,
     port,
     token,
+    max_line_size,
     recv_size,
     queued_events,
     batch_size,
@@ -138,6 +147,7 @@ def server(
             bind=bind,
             port=port,
             token=token,
+            max_line_size=max_line_size,
             recv_size=recv_size,
             qsize=queued_events,
             batch_size=batch_size,

@@ -12,8 +12,11 @@
 
 
 class LineReceiver:
-    def __init__(self, callback, *args, max_line_size=16384, **kwargs):
+    def __init__(self, callback, *args, max_line_size=None, **kwargs):
         super().__init__(*args, **kwargs)
+
+        if max_line_size is None:
+            max_line_size = 16384
 
         self._callback = callback
         self._buffer = bytearray()
