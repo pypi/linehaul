@@ -135,7 +135,7 @@ async def sender(
     bq, table, q, *, batch_size=None, batch_timeout=None, api_timeout=None
 ):
     if batch_size is None:
-        batch_size = 3  # TODO: Change to 500
+        batch_size = 500
     if batch_timeout is None:
         batch_timeout = 30
 
