@@ -111,15 +111,17 @@ async def actually_send_batch(bq, table, template_suffix, batch):
 async def send_batch(*args, **kwargs):
     # We split up send_batch and actually_send_batch so that we can use tenacity to
     # handle retries for us, while still getting to use the Nurser.start_soon interface.
+    # This also makes it easier to deal with the error handling aspects of sending a
+    # batch, from the work of actually sending. The general rule here is that errors
+    # shoudl not escape from this function.
     try:
         await actually_send_batch(*args, **kwargs)
-    except trio.TooSlowError:
+    except Exception:
         # We've tried to send this batch to BigQuery, however for one reason or another
         # we were unable to do so. We should log this error, but otherwise we're going
         # to just drop this on the floor because there's not much else we can do here
         # except buffer it forever (which is not a great idea).
         # TODO: Add Logging
-        # TODO: Determine what exceptions to catch (Maybe Exception?).
         pass
 
 
