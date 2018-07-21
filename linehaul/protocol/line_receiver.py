@@ -16,7 +16,6 @@ class BufferTooLargeError(Exception):
 
 
 class TruncatedLineError(Exception):
-
     def __init__(self, *args, line, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -59,4 +58,6 @@ class LineReceiver:
 
     def close(self):
         if len(self._buffer):
-            raise TruncatedLineError("Left over data in buffer.", line=bytes(self._buffer))
+            raise TruncatedLineError(
+                "Left over data in buffer.", line=bytes(self._buffer)
+            )
