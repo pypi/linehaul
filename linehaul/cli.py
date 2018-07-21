@@ -38,7 +38,7 @@ def cli():
     """
     The Linehaul Statistics Daemon.
 
-    Linehaul is a daemon that implements the syslog protocol, and listens for specially
+    Linehaul is a daemon that implements the syslog protocol, listening for specially
     formatted messages corresponding to download events of Python packages. For each
     event it receives it processes them, and then loads them into a BigQuery database.
     """
