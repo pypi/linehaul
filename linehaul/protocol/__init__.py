@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .line_receiver import LineReceiver
+from .line_receiver import LineReceiver, BufferTooLargeError, TruncatedLineError
 
 
-__all__ = ["LineReceiver"]
+__all__ = ["LineReceiver", "BufferTooLargeError", "TruncatedLineError"]

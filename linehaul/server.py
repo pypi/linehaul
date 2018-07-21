@@ -23,7 +23,7 @@ import tenacity
 import trio
 
 from linehaul.events import parser as _event_parser
-from linehaul.protocol import LineReceiver
+from linehaul.protocol import LineReceiver, BufferTooLargeError, TruncatedLineError
 from linehaul.syslog import parser as _syslog_parser
 from linehaul.logging import SPEW as log_SPEW
 
@@ -101,20 +101,28 @@ async def handle_connection(stream, q, token=None, max_line_size=None, recv_size
 
     lr = LineReceiver(partial(parse_line, token=token), max_line_size=max_line_size)
 
-    while True:
-        try:
-            data: bytes = await stream.receive_some(recv_size)
-        except trio.BrokenStreamError:
-            data = b""
+    try:
+        while True:
+            try:
+                data: bytes = await stream.receive_some(recv_size)
+            except trio.BrokenStreamError:
+                data = b""
 
-        if not data:
-            logger.debug("{%s}: Connection lost from %r.", peer_id, peer)
-            lr.close()
-            break
+            if not data:
+                logger.debug("{%s}: Connection lost from %r.", peer_id, peer)
+                lr.close()
+                break
 
-        for event in lr.recieve_data(data):
-            logger.log(log_SPEW, "{%s}: Received Event: %r", peer_id, event)
-            await q.put(event)
+            for event in lr.recieve_data(data):
+                logger.log(log_SPEW, "{%s}: Received Event: %r", peer_id, event)
+                await q.put(event)
+    except BufferTooLargeError:
+        logger.debug("{%s}: Buffer too large; Dropping connection.", peer_id)
+    except TruncatedLineError as exc:
+        logger.debug("{%s}: Truncated line %r; Dropping connection.", peer_id, exc.line)
+    finally:
+        with trio.move_on_after(30):
+            await stream.aclose()
 
 
 @retry(

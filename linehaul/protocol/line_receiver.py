@@ -11,6 +11,18 @@
 # limitations under the License.
 
 
+class BufferTooLargeError(Exception):
+    pass
+
+
+class TruncatedLineError(Exception):
+
+    def __init__(self, *args, line, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.line = line
+
+
 class LineReceiver:
     def __init__(self, callback, *args, max_line_size=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -27,7 +39,7 @@ class LineReceiver:
         self._buffer += data
 
         if len(self._buffer) > self._max_line_size:
-            raise RuntimeError("Too much buffer!")
+            raise BufferTooLargeError
 
         lines = []
         while True:
@@ -47,4 +59,4 @@ class LineReceiver:
 
     def close(self):
         if len(self._buffer):
-            raise RuntimeError("final line truncated?!")
+            raise TruncatedLineError("Left over data in buffer.", line=self._buffer)
