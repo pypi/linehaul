@@ -224,7 +224,7 @@ def server(
 
     TABLE is a BigQuery table identifier of the form ProjectId.DataSetId.TableId.
     """
-    bq = (_configure_bigquery(credentials, api_max_connections=api_max_connections),)
+    bq = _configure_bigquery(credentials, api_max_connections=api_max_connections)
 
     # Iterate over all of our configuration, and write out the values to the debug
     # logger to make it easier to see if linehaul is picking up a particular

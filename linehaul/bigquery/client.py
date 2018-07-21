@@ -17,6 +17,7 @@ import urllib.parse
 import asks
 
 from linehaul.bigquery.oauth2 import ServiceApplicationClient, TokenExpiredError
+from linehaul.logging import SPEW as log_SPEW
 
 
 GOOGLE_AUDIENCE = "https://www.googleapis.com/oauth2/v4/token"
@@ -55,7 +56,7 @@ class _BigQueryAuthentication:
         self._client.parse_request_body_response(resp.text)
 
     async def authenticate(self, url, *args, **kwargs):
-        logger.debug("Authenticating request for %r", url)
+        logger.log(log_SPEW, "Authenticating request for %r", url)
 
         if not self._client.access_token:
             await self.get_token()
