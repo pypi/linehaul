@@ -100,12 +100,7 @@ async def handle_connection(stream, q, token=None, max_line_size=None, recv_size
             await q.put(msg)
 
 
-@retry(
-    retry=tenacity.retry_if_exception_type(trio.TooSlowError),
-    wait=tenacity.wait_random_exponential(multiplier=1, max=60),
-    stop=tenacity.stop_after_attempt(15),
-    reraise=True,
-)
+@retry(retry=tenacity.retry_if_exception_type(trio.TooSlowError), reraise=True)
 async def actually_send_batch(bq, table, template_suffix, batch, api_timeout=None):
     if api_timeout is None:
         api_timeout = 15
@@ -114,14 +109,30 @@ async def actually_send_batch(bq, table, template_suffix, batch, api_timeout=Non
         await bq.insert_all(table, batch, template_suffix)
 
 
-async def send_batch(*args, **kwargs):
+async def send_batch(
+    *args, retry_max_attempts=None, retry_max_wait=None, retry_multiplier=None, **kwargs
+):
+    if retry_max_attempts is None:
+        retry_max_attempts = 15
+    if retry_max_wait is None:
+        retry_max_wait = 300
+    if retry_multiplier is None:
+        retry_multiplier = 0.5
+
     # We split up send_batch and actually_send_batch so that we can use tenacity to
     # handle retries for us, while still getting to use the Nurser.start_soon interface.
     # This also makes it easier to deal with the error handling aspects of sending a
     # batch, from the work of actually sending. The general rule here is that errors
     # shoudl not escape from this function.
+
+    send = actually_send_batch.retry_with(
+        wait=tenacity.wait_exponential(multiplier=retry_multiplier, max=retry_max_wait),
+        stop=tenacity.stop_after_attempt(retry_max_attempts),
+    )
+
     try:
-        await actually_send_batch(*args, **kwargs)
+
+        await send(*args, **kwargs)
     except Exception:
         # We've tried to send this batch to BigQuery, however for one reason or another
         # we were unable to do so. We should log this error, but otherwise we're going
@@ -132,7 +143,16 @@ async def send_batch(*args, **kwargs):
 
 
 async def sender(
-    bq, table, q, *, batch_size=None, batch_timeout=None, api_timeout=None
+    bq,
+    table,
+    q,
+    *,
+    batch_size=None,
+    batch_timeout=None,
+    retry_max_attempts=None,
+    retry_max_wait=None,
+    retry_multiplier=None,
+    api_timeout=None
 ):
     if batch_size is None:
         batch_size = 500
@@ -154,6 +174,9 @@ async def sender(
                         table,
                         template_suffix,
                         batch,
+                        retry_max_attempts=retry_max_attempts,
+                        retry_max_wait=retry_max_wait,
+                        retry_multiplier=retry_multiplier,
                         api_timeout=api_timeout,
                     )
                 )
@@ -175,6 +198,9 @@ async def server(
     qsize=10000,
     batch_size=None,
     batch_timeout=None,
+    retry_max_attempts=None,
+    retry_max_wait=None,
+    retry_multiplier=None,
     api_timeout=None,
     task_status=trio.TASK_STATUS_IGNORED,
 ):
@@ -195,6 +221,9 @@ async def server(
                 q,
                 batch_size=batch_size,
                 batch_timeout=batch_timeout,
+                retry_max_attempts=retry_max_attempts,
+                retry_max_wait=retry_max_wait,
+                retry_multiplier=retry_multiplier,
                 api_timeout=api_timeout,
             )
         )

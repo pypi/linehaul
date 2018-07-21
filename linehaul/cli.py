@@ -109,6 +109,35 @@ def cli():
     ),
 )
 @click.option(
+    "--retry-max-attempts",
+    type=int,
+    default=15,
+    show_default=True,
+    help="The maximum number of times to retry sending a batch to BigQuery.",
+)
+@click.option(
+    "--retry-max-wait",
+    type=float,
+    default=300,
+    metavar="SECONDS",
+    show_default=True,
+    help=(
+        "The maximum length of time to wait between retrying sending a batch to "
+        "BigQuery."
+    ),
+)
+@click.option(
+    "--retry-multiplier",
+    type=float,
+    default=0.5,
+    metavar="SECONDS",
+    show_default=True,
+    help=(
+        "The multiplier for exponential back off between retrying sending a batch to "
+        "BigQuery."
+    ),
+)
+@click.option(
     "--api-timeout",
     type=int,
     default=30,
@@ -127,6 +156,9 @@ def server(
     queued_events,
     batch_size,
     batch_timeout,
+    retry_max_attempts,
+    retry_max_wait,
+    retry_multiplier,
     api_timeout,
     table,
 ):
@@ -152,6 +184,9 @@ def server(
             qsize=queued_events,
             batch_size=batch_size,
             batch_timeout=batch_timeout,
+            retry_max_attempts=retry_max_attempts,
+            retry_max_wait=retry_max_wait,
+            retry_multiplier=retry_multiplier,
             api_timeout=api_timeout,
         ),
         restrict_keyboard_interrupt_to_checkpoints=True,
