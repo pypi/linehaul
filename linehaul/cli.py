@@ -128,64 +128,60 @@ async def sender(outgoing, bq, table):
             pass
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
-class Linehaul:
+async def _serve(
+    bq,
+    table,
+    bind="0.0.0.0",
+    port=512,
+    token=None,
+    task_status=trio.TASK_STATUS_IGNORED,
+):
+    incoming = trio.Queue(1000)
+    outgoing = trio.Queue(10)  # Multiply by 500 to get total # of downloads
 
-    bigquery: BigQuery
-    table: str
+    async with trio.open_nursery() as nursery:
+        nursery.start_soon(collector, incoming, outgoing)
 
-    async def serve(
-        self, bind="0.0.0.0", port=512, token=None, task_status=trio.TASK_STATUS_IGNORED
-    ):
-        incoming = trio.Queue(1000)
-        outgoing = trio.Queue(10)  # Multiply by 500 to get total # of downloads
+        for _ in range(10):
+            nursery.start_soon(sender, outgoing, bq, table)
 
-        async with trio.open_nursery() as nursery:
-            nursery.start_soon(collector, incoming, outgoing)
-
-            for _ in range(10):
-                nursery.start_soon(sender, outgoing, self.bigquery, self.table)
-
-            await nursery.start(
-                trio.serve_tcp, LinehaulHandler(incoming, token=token), port
-            )
-
-            task_status.started()
-
-    async def migrate(self):
-        await _migrate(
-            json.loads(importlib_resources.read_text("linehaul", "schema.json"))
+        await nursery.start(
+            trio.serve_tcp, LinehaulHandler(incoming, token=token), port
         )
 
-
-pass_linehaul = click.make_pass_decorator(Linehaul)
+        task_status.started()
 
 
 @click.group(context_settings={"auto_envvar_prefix": "LINEHAUL"})
-@click.option("--table", required=True)
-@click.option("--credentials", type=click.File("r", encoding="utf8"), required=True)
-@click.pass_context
-def cli(ctx, table, credentials):
-    credentials = json.load(credentials)
-
-    ctx.obj = Linehaul(
-        bigquery=BigQuery(credentials["client_email"], credentials["private_key"]),
-        table=table,
-    )
+def cli():
+    pass
 
 
 @cli.command()
 @click.option("--bind", default="0.0.0.0")
 @click.option("--port", type=int, default=512)
 @click.option("--token")
-@pass_linehaul
-def serve(lh, bind, port, token):
+@click.option("--credentials", type=click.File("r", encoding="utf8"), required=True)
+@click.argument("table")
+def serve(bind, port, token, credentials, table):
+    credentials = json.load(credentials)
+    bq = BigQuery(credentials["client_email"], credentials["private_key"])
     trio.run(
-        lh.serve, bind, port, token, restrict_keyboard_interrupt_to_checkpoints=True
+        _serve,
+        bq,
+        table,
+        bind,
+        port,
+        token,
+        restrict_keyboard_interrupt_to_checkpoints=True,
     )
 
 
 @cli.command()
-@pass_linehaul
-def migrate(lh):
-    trio.run(lh.migrate)
+@click.option("--credentials", type=click.File("r", encoding="utf8"), required=True)
+@click.argument("table")
+def migrate(credentials, table):
+    credentials = json.load(credentials)
+    bq = BigQuery(credentials["client_email"], credentials["private_key"])
+    schema = json.loads(importlib_resources.read_text("linehaul", "schema.json"))
+    trio.run(_migrate, bq, table, schema)
