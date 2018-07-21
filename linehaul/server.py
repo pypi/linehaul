@@ -18,11 +18,15 @@ from typing import Optional
 
 import arrow
 import cattr
+import tenacity
 import trio
 
 from linehaul.events import parser as _event_parser
 from linehaul.protocol import LineReceiver
 from linehaul.syslog import parser as _syslog_parser
+
+
+retry = partial(tenacity.retry, sleep=trio.sleep)
 
 
 _cattr = cattr.Converter()
@@ -93,13 +97,29 @@ async def _handle_connection(stream, q, token=None):
             await q.put(msg)
 
 
-async def send_batch(bq, table, outgoing):
-    with trio.move_on_after(120) as cancel_scope:
-        for template_suffix, batch in compute_batches(outgoing):
-            await bq.insert_all(table, batch, template_suffix)
+@retry(
+    retry=tenacity.retry_if_exception_type(trio.TooSlowError),
+    wait=tenacity.wait_random_exponential(multiplier=1, max=60),
+    stop=tenacity.stop_after_attempt(15),
+    reraise=True,
+)
+async def actually_send_batch(bq, table, template_suffix, batch):
+    with trio.fail_after(15):  # TODO: Is 15 seconds a good value?
+        await bq.insert_all(table, batch, template_suffix)
 
-    if cancel_scope.cancelled_caught:
-        # TODO: Log an error that we took too long trying to send data to BigQuery
+
+async def send_batch(*args, **kwargs):
+    # We split up send_batch and actually_send_batch so that we can use tenacity to
+    # handle retries for us, while still getting to use the Nurser.start_soon interface.
+    try:
+        await actually_send_batch(*args, **kwargs)
+    except trio.TooSlowError:
+        # We've tried to send this batch to BigQuery, however for one reason or another
+        # we were unable to do so. We should log this error, but otherwise we're going
+        # to just drop this on the floor because there's not much else we can do here
+        # except buffer it forever (which is not a great idea).
+        # TODO: Add Logging
+        # TODO: Determine what exceptions to catch (Maybe Exception?).
         pass
 
 
@@ -116,7 +136,8 @@ async def sender(bq, table, q, *, batch_size=None, batch_timeout=None):
                 while len(batch) < batch_size:
                     batch.append(await q.get())
 
-            nursery.start_soon(send_batch, bq, table, batch)
+            for template_suffix, batch in compute_batches(batch):
+                nursery.start_soon(send_batch, bq, table, template_suffix, batch)
 
 
 #
