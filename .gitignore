@@ -10,6 +10,7 @@
 .state
 .idea
 .pytest_cache/
+.hypothesis/
 
 docs/_build/
 build/

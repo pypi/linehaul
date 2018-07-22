@@ -1,6 +1,7 @@
 atomicwrites==1.1.5       # via pytest
-attrs==18.1.0             # via pytest
-coverage==4.5.1           # via pytest-cov
+attrs==18.1.0             # via hypothesis, pytest
+coverage==4.5.1           # via hypothesis, pytest-cov
+hypothesis==3.66.4
 more-itertools==4.2.0     # via pytest
 pluggy==0.6.0             # via pytest
 py==1.5.4                 # via pytest
