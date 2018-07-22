@@ -15,6 +15,7 @@ General configuration
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: console
+
     $ python -m linehaul -h
     Usage: linehaul [OPTIONS] COMMAND [ARGS]...
 
@@ -39,6 +40,7 @@ Linehaul Server
 ~~~~~~~~~~~~~~~
 
 .. code-block:: console
+
     $ python -m linehaul server -h
     Usage: linehaul server [OPTIONS] TABLE
 
@@ -84,6 +86,7 @@ Schema Migrations
 ~~~~~~~~~~~~~~~~~
 
 .. code-block:: console
+
     $ python -m linehaul migrate -h
     Usage: linehaul migrate [OPTIONS] TABLE
 
