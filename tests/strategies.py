@@ -14,11 +14,13 @@ from hypothesis import strategies as st
 
 
 @st.composite
-def line_delimited_data(draw, max_line_size):
+def line_delimited_data(draw, max_line_size, min_lines=1):
     n = draw(max_line_size)
     data = st.binary(min_size=1, max_size=n).filter(lambda d: b"\n" not in d)
     lines = draw(
-        st.lists(data, min_size=1).filter(lambda l: sum(map(len, l)) + len(l) <= n)
+        st.lists(data, min_size=min_lines).filter(
+            lambda l: sum(map(len, l)) + len(l) <= n
+        )
     )
     return b"\n".join(lines) + b"\n"
 
