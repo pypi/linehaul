@@ -85,9 +85,13 @@ def compute_batches(all_items):
 #
 
 
-async def handle_connection(stream, q, token=None, max_line_size=None, recv_size=None):
+async def handle_connection(
+    stream, q, token=None, max_line_size=None, recv_size=None, cleanup_timeout=None
+):
     if recv_size is None:
         recv_size = 8192
+    if cleanup_timeout is None:
+        cleanup_timeout = 30
 
     # Sometimes if a connection is open, and closes really fast, we can call this
     # after the peer has disconnected, making this an error. In those cases we'll
@@ -121,7 +125,7 @@ async def handle_connection(stream, q, token=None, max_line_size=None, recv_size
     except TruncatedLineError as exc:
         logger.debug("{%s}: Truncated line %r; Dropping connection.", peer_id, exc.line)
     finally:
-        with trio.move_on_after(30):
+        with trio.move_on_after(cleanup_timeout):
             await stream.aclose()
 
 
@@ -254,6 +258,7 @@ async def server(
     token=None,
     max_line_size=None,
     recv_size=None,
+    cleanup_timeout=None,
     qsize=10000,
     batch_size=None,
     batch_timeout=None,
@@ -295,6 +300,7 @@ async def server(
                 token=token,
                 max_line_size=max_line_size,
                 recv_size=recv_size,
+                cleanup_timeout=cleanup_timeout,
             ),
             port,
         )

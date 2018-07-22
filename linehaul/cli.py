@@ -161,6 +161,14 @@ def cli(log_level):
     help="How many bytes to read per recv.",
 )
 @click.option(
+    "--cleanup-timeout",
+    type=int,
+    default=30,
+    metavar="SECONDS",
+    show_default=True,
+    help="How long to wait for a connection to close gracefully.",
+)
+@click.option(
     "--queued-events",
     type=int,
     default=10000,
@@ -238,6 +246,7 @@ def server(
     token,
     max_line_size,
     recv_size,
+    cleanup_timeout,
     queued_events,
     batch_size,
     batch_timeout,
@@ -267,6 +276,7 @@ def server(
         token=token,
         max_line_size=max_line_size,
         recv_size=recv_size,
+        cleanup_timeout=cleanup_timeout,
         qsize=queued_events,
         batch_size=batch_size,
         batch_timeout=batch_timeout,
