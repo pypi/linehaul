@@ -22,7 +22,7 @@ import cattr
 import tenacity
 import trio
 
-from linehaul.bigquery import TokenFetchError
+from linehaul.bigquery import TokenFetchError, BigQueryError
 from linehaul.events import parser as _event_parser
 from linehaul.protocol import LineReceiver, BufferTooLargeError, TruncatedLineError
 from linehaul.syslog import parser as _syslog_parser
@@ -148,7 +148,7 @@ def log_retries(logger):
 
 @retry(
     retry=tenacity.retry_if_exception_type(
-        (trio.TooSlowError, trio.BrokenStreamError, TokenFetchError)
+        (trio.TooSlowError, trio.BrokenStreamError, TokenFetchError, BigQueryError)
     ),
     reraise=True,
     before_sleep=log_retries(logger),

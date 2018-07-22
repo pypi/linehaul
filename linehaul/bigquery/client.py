@@ -37,6 +37,15 @@ class TokenFetchError(Exception):
         self.body = body
 
 
+class BigQueryError(Exception):
+
+    def __init__(self, *args, status_code, body, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.status_code = status_code
+        self.body = body
+
+
 class _BigQueryAuthentication:
     def __init__(self, session, account, private_key):
         self._session = session
@@ -108,8 +117,11 @@ class BigQuery:
         resp = await self._session.get(url, headers=headers, data=body)
 
         if resp.status_code != 200:
-            # TODO: Better Error Handling.
-            raise RuntimeError("error!!!")
+            raise BigQueryError(
+                f"Invalid Response Code: {resp.status_code} with body: {resp.text!r}",
+                status_code=resp.status_code,
+                body=resp.text,
+            )
 
         return resp.json().get("schema", {}).get("fields", [])
 
@@ -129,8 +141,11 @@ class BigQuery:
         resp = await self._session.request("PATCH", url, headers=headers, data=body)
 
         if resp.status_code != 200:
-            # TODO: Better Error Handling.
-            raise RuntimeError("error!!!")
+            raise BigQueryError(
+                f"Invalid Response Code: {resp.status_code} with body: {resp.text!r}",
+                status_code=resp.status_code,
+                body=resp.text,
+            )
 
     async def insert_all(self, target, rows, template_suffix):
         data = {
@@ -156,5 +171,8 @@ class BigQuery:
         resp = await self._session.post(url, headers=headers, data=body)
 
         if resp.status_code != 200:
-            # TODO: Better Error Handling.
-            raise RuntimeError("error!!!")
+            raise BigQueryError(
+                f"Invalid Response Code: {resp.status_code} with body: {resp.text!r}",
+                status_code=resp.status_code,
+                body=resp.text,
+            )

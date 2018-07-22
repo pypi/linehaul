@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from linehaul.bigquery.client import BigQuery, TokenFetchError
+from linehaul.bigquery.client import BigQuery, TokenFetchError, BigQueryError
 
 
-__all__ = ["BigQuery", "TokenFetchError"]
+__all__ = ["BigQuery", "TokenFetchError", "BigQueryError"]
