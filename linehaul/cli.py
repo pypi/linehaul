@@ -330,7 +330,7 @@ def migrate(credentials_file, credentials_blob, table):
 
     TABLE is a BigQuery table identifier of the form ProjectId.DataSetId.TableId.
     """
-    bq = _configure_bigquery(credentials)
+    bq = _configure_bigquery(credentials_file, credentials_blob)
     schema = json.loads(importlib_resources.read_text("linehaul", "schema.json"))
 
     trio.run(migrate_, bq, table, schema)
