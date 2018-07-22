@@ -113,7 +113,7 @@ async def handle_connection(
             except trio.BrokenStreamError:
                 data = b""
 
-            for event in lr.recieve_data(data):
+            for event in lr.receive_data(data):
                 logger.log(log_SPEW, "{%s}: Received Event: %r", peer_id, event)
                 await q.put(event)
 

@@ -34,7 +34,7 @@ class LineReceiver:
         self._searched = 0
         self._max_line_size = max_line_size
 
-    def recieve_data(self, data):
+    def receive_data(self, data):
         self._buffer += data
 
         if len(self._buffer) > self._max_line_size:

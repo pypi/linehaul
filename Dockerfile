@@ -2,6 +2,11 @@
 # image that it gets deployed into.
 FROM python:3.6.3-slim-stretch as build
 
+# Define whether we're building a production or a development image. This will
+# generally be used to control whether or not we install our development and
+# test dependencies.
+ARG DEVEL=no
+
 # Install System level Linehaul build requirements, this is done before
 # everything else because these are rarely ever going to change.
 RUN set -x \
@@ -39,6 +44,7 @@ COPY requirements /tmp/requirements
 RUN set -x \
     && pip --no-cache-dir --disable-pip-version-check \
         install -r /tmp/requirements/main.txt \
+                $(if [ "$DEVEL" = "yes" ]; then echo '-r /tmp/requirements/tests.txt'; fi) \
     && find /opt/linehaul -name '*.pyc' -delete
 
 

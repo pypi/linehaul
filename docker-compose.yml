@@ -2,7 +2,10 @@ version: '3'
 
 services:
   linehaul:
-    build: .
+    build:
+      context: .
+      args:
+        DEVEL: "yes"
     command: python -m linehaul --log-level debug server --port 8512 --token insecuretoken --credentials-file /opt/linehaul/src/dev/GCP.json <bigquery table>
     volumes:
       - .:/opt/linehaul/src:z
