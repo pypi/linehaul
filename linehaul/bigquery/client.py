@@ -29,6 +29,14 @@ BIGQUERY_SCOPE = "https://www.googleapis.com/auth/bigquery"
 logger = logging.getLogger(__name__)
 
 
+class TokenFetchError(Exception):
+    def __init__(self, *args, status_code, body, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.status_code = status_code
+        self.body = body
+
+
 class _BigQueryAuthentication:
     def __init__(self, session, account, private_key):
         self._session = session
@@ -49,8 +57,11 @@ class _BigQueryAuthentication:
         resp = await self._session.post(url, headers=headers, data=body)
 
         if resp.status_code != 200:
-            # TODO: Better Error Handling.
-            raise RuntimeError("Wat!!!")
+            raise TokenFetchError(
+                f"Invalid Response Code: {resp.status_code} with body: {resp.text!r}",
+                status_code=resp.status_code,
+                body=resp.text,
+            )
 
         logger.debug("Saving fetched OAuth2 token.")
         self._client.parse_request_body_response(resp.text)
