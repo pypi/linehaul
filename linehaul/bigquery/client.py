@@ -38,7 +38,6 @@ class TokenFetchError(Exception):
 
 
 class BigQueryError(Exception):
-
     def __init__(self, *args, status_code, body, **kwargs):
         super().__init__(*args, **kwargs)
 
