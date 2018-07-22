@@ -4,7 +4,7 @@ default:
 
 
 tests:
-	docker-compose run --rm linehaul py.test $(T) $(TESTARGS)
+	docker-compose run --rm linehaul py.test --cov linehaul --cov-report term-missing:skip-covered $(T) $(TESTARGS)
 
 
 .PHONY: default tests
