@@ -104,7 +104,7 @@ async def handle_connection(
             stream if hasattr(stream, "transport_stream") else stream.transport_stream
         )
         peer, *_ = real_stream.socket.getpeername()
-    except OSError:
+    except (OSError, AttributeError):
         peer = "Unknown"
     logger.debug("{%s}: Connection received from %r.", peer_id, peer)
 
