@@ -100,7 +100,10 @@ async def handle_connection(
     # just log what we have.
     peer_id = uuid.uuid4()
     try:
-        peer, *_ = stream.socket.getpeername()
+        real_stream = (
+            stream if hasattr(stream, "transport_stream") else stream.transport_stream
+        )
+        peer, *_ = real_stream.socket.getpeername()
     except OSError:
         peer = "Unknown"
     logger.debug("{%s}: Connection received from %r.", peer_id, peer)
