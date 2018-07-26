@@ -16,7 +16,7 @@ setup(
     },
     packages=find_packages(exclude=["tests*"]),
     package_data={"linehaul": ["schema.json"]},
-    entry_points={"console_scripts": ["linehaul = linehaul.cli:main"]},
+    entry_points={"console_scripts": ["linehaul = linehaul.cli:cli"]},
     install_requires=install_requires,
     setup_requires=["setuptools_scm"],
 )
