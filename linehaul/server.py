@@ -12,6 +12,7 @@
 
 import itertools
 import logging
+import ssl
 import uuid
 
 from functools import partial
@@ -258,6 +259,7 @@ async def server(
     table,
     bind="0.0.0.0",
     port=512,
+    tls_certificate=None,
     token=None,
     max_line_size=None,
     recv_size=None,
@@ -295,18 +297,21 @@ async def server(
             )
         )
 
-        await nursery.start(
-            trio.serve_tcp,
-            partial(
-                handle_connection,
-                q=q,
-                token=token,
-                max_line_size=max_line_size,
-                recv_size=recv_size,
-                cleanup_timeout=cleanup_timeout,
-            ),
-            port,
+        handler = partial(
+            handle_connection,
+            q=q,
+            token=token,
+            max_line_size=max_line_size,
+            recv_size=recv_size,
+            cleanup_timeout=cleanup_timeout,
         )
+        if tls_certificate is None:
+            await nursery.start(trio.serve_tcp, handler, port)
+        else:
+            ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            ctx.load_cert_chain(tls_certificate)
+
+            await nursery.start(trio.serve_ssl_over_tcp, handler, port, ctx)
 
         logging.info("Listening on %s:%d and sending to %r", bind, port, table)
         task_status.started()

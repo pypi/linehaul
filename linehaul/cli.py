@@ -143,6 +143,14 @@ def cli(log_level):
     show_default=True,
     help="The port to bind to.",
 )
+@click.option(
+    "--tls-certificate",
+    type=click.Path(
+        exists=True, file_okay=True, dir_okay=False, readable=True, resolve_path=True
+    ),
+    metavar="PATH",
+    help="The TLS certificate to serve.",
+)
 @click.option("--token", help="A token used to authenticate a remote syslog stream.")
 @click.option(
     "--max-line-size",
@@ -243,6 +251,7 @@ def server(
     credentials_blob,
     bind,
     port,
+    tls_certificate,
     token,
     max_line_size,
     recv_size,
@@ -273,6 +282,7 @@ def server(
     for key, value in dict(
         bind=bind,
         port=port,
+        tls_certificate=tls_certificate,
         token=token,
         max_line_size=max_line_size,
         recv_size=recv_size,
@@ -297,6 +307,7 @@ def server(
             table,
             bind=bind,
             port=port,
+            tls_certificate=tls_certificate,
             token=token,
             max_line_size=max_line_size,
             recv_size=recv_size,
