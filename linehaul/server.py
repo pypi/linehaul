@@ -67,7 +67,7 @@ def parse_line(line: bytes, token=None) -> Optional[_event_parser.Download]:
 
 
 def extract_item_date(item):
-    return item.timestamp.format("YYYYMDDD")
+    return item.timestamp.format("YYYYMMDD")
 
 
 def compute_batches(all_items):
