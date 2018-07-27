@@ -362,7 +362,8 @@ class Parser:
                 Firefox/ |
                 UCWEB |
                 Links |
-                ^okhttp
+                ^okhttp |
+                ^Apache-HttpClient
             )
             (?:/|$)
         """,
