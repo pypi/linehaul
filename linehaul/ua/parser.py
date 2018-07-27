@@ -405,7 +405,8 @@ class Parser:
             ^Y!J-ASR/ |
             ^NSIS_Inetc\ \(Mozilla\)$ |
             ^Debian\ uscan |
-            ^Pingdom\.com_bot_version_\d+\.\d+_\(https?://www.pingdom.com/\)$
+            ^Pingdom\.com_bot_version_\d+\.\d+_\(https?://www.pingdom.com/\)$ |
+            ^okhttp/
         )
         """,
         re.VERBOSE,
