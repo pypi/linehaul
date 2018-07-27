@@ -201,7 +201,6 @@ async def send_batch(
     )
 
     try:
-
         await send(bq, table, template_suffix, batch, *args, **kwargs)
     # We've tried to send this batch to BigQuery, however for one reason or another
     # we were unable to do so. We should log this error, but otherwise we're going
