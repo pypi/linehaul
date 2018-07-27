@@ -11,6 +11,7 @@
 # limitations under the License.
 
 import json
+import logging
 import re
 
 from typing import Optional
@@ -21,6 +22,9 @@ import cattr
 import packaging.version
 
 from packaging.specifiers import SpecifierSet
+
+
+logger = logging.getLogger(__name__)
 
 
 class UnknownUserAgentError(ValueError):
@@ -409,7 +413,14 @@ class Parser:
         ]
 
         for format in formats:
-            data = format(user_agent)
+            try:
+                data = format(user_agent)
+            except Exception as exc:
+                logger.warning(
+                    "Error parsing %r as %s", user_agent, format.__name__, exc_info=True
+                )
+                data = None
+
             if data is not None:
                 return cattr.structure(data, UserAgent)
 
