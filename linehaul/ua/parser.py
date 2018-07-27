@@ -406,7 +406,8 @@ class Parser:
             ^NSIS_Inetc\ \(Mozilla\)$ |
             ^Debian\ uscan |
             ^Pingdom\.com_bot_version_\d+\.\d+_\(https?://www.pingdom.com/\)$ |
-            ^okhttp/
+            ^okhttp/ |
+            ^MauiBot\ \(crawler\.feedback\+dc@gmail\.com\)$
         )
         """,
         re.VERBOSE,
