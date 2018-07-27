@@ -57,13 +57,11 @@ def parse_line(line: bytes, token=None) -> Optional[_event_parser.Download]:
 
     # Parse the incoming Syslog Message, and get the download event out of it.
     try:
-        msg = _syslog_parser.parse(line)
-        event = _event_parser.parse(msg.message)
-    except ValueError:
-        # TODO: Better Error Logging.
-        return
-
-    return event
+        return _event_parser.parse(_syslog_parser.parse(line))
+    except _syslog_parser.UnparseableSyslogMessage as exc:
+        logger.error("Unparseable syslog message: %r", exc)
+    except _event_parser.UnparseableEvent as exc:
+        logger.error("Unparseable event: %r, exc")
 
 
 def extract_item_date(item):

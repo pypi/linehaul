@@ -23,6 +23,10 @@ from pyparsing import ParseException
 from . import Facility, Severity
 
 
+class UnparseableSyslogMessage(Exception):
+    pass
+
+
 class NilValue:
     pass
 
@@ -104,7 +108,7 @@ def parse(message):
     try:
         parsed = SYSLOG_MESSAGE.parseString(message, parseAll=True)
     except ParseException as exc:
-        raise ValueError(str(exc)) from None
+        raise UnparseableSyslogMessage(str(exc)) from None
 
     data = {}
     data["facility"] = int(parsed.priority / 8)

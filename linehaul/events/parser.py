@@ -37,6 +37,10 @@ _cattr.register_structure_hook(
 )
 
 
+class UnparseableEvent(Exception):
+    pass
+
+
 class NullValue:
     pass
 
@@ -162,7 +166,7 @@ def parse(message):
     try:
         parsed = MESSAGE.parseString(message, parseAll=True)
     except ParseException as exc:
-        raise ValueError("{!r} {}".format(message, exc)) from None
+        raise UnparseableEvent("{!r} {}".format(message, exc)) from None
 
     data = {}
     data["timestamp"] = parsed.timestamp
