@@ -57,7 +57,7 @@ def parse_line(line: bytes, token=None) -> Optional[_event_parser.Download]:
 
     # Parse the incoming Syslog Message, and get the download event out of it.
     try:
-        return _event_parser.parse(_syslog_parser.parse(line))
+        return _event_parser.parse(_syslog_parser.parse(line).message)
     except _syslog_parser.UnparseableSyslogMessage as exc:
         logger.error("Unparseable syslog message: %r", exc)
     except _event_parser.UnparseableEvent as exc:
