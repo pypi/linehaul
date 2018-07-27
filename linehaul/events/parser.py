@@ -11,6 +11,7 @@
 # limitations under the License.
 
 import enum
+import logging
 import posixpath
 
 from typing import Optional
@@ -25,6 +26,9 @@ from pyparsing import printables as _printables, restOfLine
 from pyparsing import ParseException
 
 from linehaul.ua import parser as user_agents
+
+
+logger = logging.getLogger(__name__)
 
 
 _cattr = cattr.Converter()
@@ -172,11 +176,15 @@ def parse(message):
     data["file"]["version"] = _value_or_none(parsed.version)
     data["file"]["type"] = _value_or_none(parsed.package_type)
 
-    ua = user_agents.parse(parsed.user_agent)
-    if ua is None:
-        return  # Ignored user agents mean we'll skip trying to log this event
-
     download = _cattr.structure(data, Download)
-    download = attr.evolve(download, details=ua)
+
+    try:
+        ua = user_agents.parse(parsed.user_agent)
+        if ua is None:
+            return  # Ignored user agents mean we'll skip trying to log this event
+    except user_agents.UnknownUserAgentError:
+        logging.info("Unknown User agent: %r", ua)
+    else:
+        download = attr.evolve(download, details=ua)
 
     return download
