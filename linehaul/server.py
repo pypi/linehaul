@@ -113,7 +113,7 @@ async def handle_connection(
     try:
         while True:
             try:
-                data: bytes = await stream.receive_some(recv_size)
+                data = await stream.receive_some(recv_size)
             except trio.BrokenStreamError:
                 data = b""
 

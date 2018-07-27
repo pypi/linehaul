@@ -73,25 +73,26 @@ SYSLOG_MESSAGE = HEADER + COLON + SP + MESSAGE
 SYSLOG_MESSAGE.leaveWhitespace()
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
+@attr.s(slots=True, frozen=True)
 class SyslogMessage:
 
-    facility: Facility = attr.ib(
-        converter=Facility, validator=attr.validators.in_(Facility)
+    facility = attr.ib(
+        type=Facility, converter=Facility, validator=attr.validators.in_(Facility)
     )
-    severity: Severity = attr.ib(
-        converter=Severity, validator=attr.validators.in_(Severity)
+    severity = attr.ib(
+        type=Severity, converter=Severity, validator=attr.validators.in_(Severity)
     )
-    timestamp: datetime.datetime = attr.ib(
+    timestamp = attr.ib(
+        type=datetime.datetime,
         converter=lambda t: arrow.get(t).datetime,
         validator=attr.validators.instance_of(datetime.datetime),
     )
-    hostname: Optional[str] = attr.ib(
-        validator=attr.validators.instance_of((str, type(None)))
+    hostname = attr.ib(
+        type=str, validator=attr.validators.instance_of((str, type(None)))
     )
-    appname: str = attr.ib(validator=attr.validators.instance_of(str))
-    procid: str = attr.ib(validator=attr.validators.instance_of(str))
-    message: str = attr.ib(validator=attr.validators.instance_of(str))
+    appname = attr.ib(type=str, validator=attr.validators.instance_of(str))
+    procid = attr.ib(type=str, validator=attr.validators.instance_of(str))
+    message = attr.ib(type=str, validator=attr.validators.instance_of(str))
 
 
 def _value_or_none(value):

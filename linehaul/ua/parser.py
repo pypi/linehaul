@@ -27,54 +27,54 @@ class UnknownUserAgentError(ValueError):
     pass
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
+@attr.s(slots=True, frozen=True)
 class Installer:
 
-    name: Optional[str] = None
-    version: Optional[str] = None
+    name = attr.ib(type=Optional[str], default=None)
+    version = attr.ib(type=Optional[str], default=None)
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
+@attr.s(slots=True, frozen=True)
 class Implementation:
 
-    name: Optional[str] = None
-    version: Optional[str] = None
+    name = attr.ib(type=Optional[str], default=None)
+    version = attr.ib(type=Optional[str], default=None)
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
+@attr.s(slots=True, frozen=True)
 class LibC:
 
-    lib: Optional[str] = None
-    version: Optional[str] = None
+    lib = attr.ib(type=Optional[str], default=None)
+    version = attr.ib(type=Optional[str], default=None)
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
+@attr.s(slots=True, frozen=True)
 class Distro:
 
-    name: Optional[str] = None
-    version: Optional[str] = None
-    id: Optional[str] = None
-    libc: Optional[LibC] = None
+    name = attr.ib(type=Optional[str], default=None)
+    version = attr.ib(type=Optional[str], default=None)
+    id = attr.ib(type=Optional[str], default=None)
+    libc = attr.ib(type=Optional[LibC], default=None)
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
+@attr.s(slots=True, frozen=True)
 class System:
 
-    name: Optional[str] = None
-    release: Optional[str] = None
+    name = attr.ib(type=Optional[str], default=None)
+    release = attr.ib(type=Optional[str], default=None)
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
+@attr.s(slots=True, frozen=True)
 class UserAgent:
 
-    installer: Optional[Installer] = None
-    python: Optional[str] = None
-    implementation: Optional[Implementation] = None
-    distro: Optional[Distro] = None
-    system: Optional[System] = None
-    cpu: Optional[str] = None
-    openssl_version: Optional[str] = None
-    setuptools_version: Optional[str] = None
+    installer = attr.ib(type=Optional[Installer], default=None)
+    python = attr.ib(type=Optional[str], default=None)
+    implementation = attr.ib(type=Optional[Implementation], default=None)
+    distro = attr.ib(type=Optional[Distro], default=None)
+    system = attr.ib(type=Optional[System], default=None)
+    cpu = attr.ib(type=Optional[str], default=None)
+    openssl_version = attr.ib(type=Optional[str], default=None)
+    setuptools_version = attr.ib(type=Optional[str], default=None)
 
 
 class Parser:

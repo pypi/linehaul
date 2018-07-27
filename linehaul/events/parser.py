@@ -126,25 +126,25 @@ class PackageType(enum.Enum):
     unknown = None
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
+@attr.s(slots=True, frozen=True)
 class File:
 
-    filename: str
-    project: str
-    version: str
-    type: PackageType
+    filename = attr.ib(type=str)
+    project = attr.ib(type=str)
+    version = attr.ib(type=str)
+    type = attr.ib(type=PackageType)
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
+@attr.s(slots=True, frozen=True)
 class Download:
 
-    timestamp: arrow.Arrow
-    url: str
-    file: File
-    tls_protocol: Optional[str] = None
-    tls_cipher: Optional[str] = None
-    country_code: Optional[str] = None
-    details: Optional[user_agents.UserAgent] = None
+    timestamp = attr.ib(type=arrow.Arrow)
+    url = attr.ib(type=str)
+    file = attr.ib(type=File)
+    tls_protocol = attr.ib(type=Optional[str], default=None)
+    tls_cipher = attr.ib(type=Optional[str], default=None)
+    country_code = attr.ib(type=Optional[str], default=None)
+    details = attr.ib(type=Optional[user_agents.UserAgent], default=None)
 
 
 def _value_or_none(value):
