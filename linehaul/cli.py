@@ -84,7 +84,12 @@ def _validate_base64(ctx, param, value):
     show_default=True,
     help="The verbosity of the console logger.",
 )
-def cli(log_level):
+@click.option(
+    "--log-file",
+    type=click.Path(file_okay=True, dir_okay=False, writeable=True, readable=True),
+    help="A file to additionally send logging to.",
+)
+def cli(log_level, log_file):
     """
     The Linehaul Statistics Daemon.
 
@@ -92,6 +97,10 @@ def cli(log_level):
     formatted messages corresponding to download events of Python packages. For each
     event it receives it processes them, and then loads them into a BigQuery database.
     """
+    handlers = ["console"]
+    if log_file:
+        handlers.append("file")
+
     logging.config.dictConfig(
         {
             "version": 1,
@@ -110,9 +119,15 @@ def cli(log_level):
                     "stream": "ext://sys.stdout",
                     "level": log_level.upper(),
                     "formatter": "console",
-                }
+                },
+                "file": {
+                    "level": "DEBUG",
+                    "class": "logging.handlers.WatchedFileHandler",
+                    "formatter": "console",
+                    "filename": log_file or "/dev/null",
+                },
             },
-            "root": {"level": "SPEW", "handlers": ["console"]},
+            "root": {"level": "SPEW", "handlers": handlers},
         }
     )
 
