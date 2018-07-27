@@ -46,7 +46,7 @@ _cattr.register_unstructure_hook(arrow.Arrow, lambda o: o.float_timestamp)
 
 
 def parse_line(line: bytes, token=None) -> Optional[_event_parser.Download]:
-    line = line.decode("utf8")
+    line = line.decode("utf8", errors="replace")
 
     # Check our token, and remove it from the start of the line if it matches.
     if token is not None:
