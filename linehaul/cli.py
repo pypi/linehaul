@@ -315,27 +315,31 @@ def server(
         logging.debug("Configuring %s to %r", key, value)
 
     # Actually run our server via trio.
-    trio.run(
-        partial(
-            server_,
-            bq,
-            table,
-            bind=bind,
-            port=port,
-            tls_certificate=tls_certificate,
-            token=token,
-            max_line_size=max_line_size,
-            recv_size=recv_size,
-            qsize=queued_events,
-            batch_size=batch_size,
-            batch_timeout=batch_timeout,
-            retry_max_attempts=retry_max_attempts,
-            retry_max_wait=retry_max_wait,
-            retry_multiplier=retry_multiplier,
-            api_timeout=api_timeout,
-        ),
-        restrict_keyboard_interrupt_to_checkpoints=True,
-    )
+    try:
+        trio.run(
+            partial(
+                server_,
+                bq,
+                table,
+                bind=bind,
+                port=port,
+                tls_certificate=tls_certificate,
+                token=token,
+                max_line_size=max_line_size,
+                recv_size=recv_size,
+                qsize=queued_events,
+                batch_size=batch_size,
+                batch_timeout=batch_timeout,
+                retry_max_attempts=retry_max_attempts,
+                retry_max_wait=retry_max_wait,
+                retry_multiplier=retry_multiplier,
+                api_timeout=api_timeout,
+            ),
+            restrict_keyboard_interrupt_to_checkpoints=True,
+        )
+    except BaseException:
+        logger.exception("Unhandled error in server.")
+        raise
 
 
 @cli.command()
