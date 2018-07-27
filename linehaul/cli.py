@@ -121,10 +121,10 @@ def cli(log_level, log_file):
                     "formatter": "console",
                 },
                 "file": {
-                    "level": "DEBUG",
                     "class": "logging.handlers.WatchedFileHandler",
-                    "formatter": "console",
                     "filename": log_file or "/dev/null",
+                    "level": log_level.upper(),
+                    "formatter": "console",
                 },
             },
             "root": {"level": "SPEW", "handlers": handlers},
