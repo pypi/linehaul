@@ -187,7 +187,7 @@ def parse(message):
         if ua is None:
             return  # Ignored user agents mean we'll skip trying to log this event
     except user_agents.UnknownUserAgentError:
-        logging.info("Unknown User agent: %r", ua)
+        logging.info("Unknown User agent: %r", parsed.user_agent)
     else:
         download = attr.evolve(download, details=ua)
 
