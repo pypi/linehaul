@@ -380,7 +380,8 @@ class Parser:
             ^AWSBrewLinkChecker/ |
             ^Y!J-ASR/ |
             ^NSIS_Inetc\ \(Mozilla\)$ |
-            ^Debian\ uscan
+            ^Debian\ uscan |
+            ^Pingdom\.com_bot_version_\d+\.\d+_\(https?://www.pingdom.com/\)$
         )
         """,
         re.VERBOSE,
