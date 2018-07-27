@@ -86,7 +86,7 @@ def _validate_base64(ctx, param, value):
 )
 @click.option(
     "--log-file",
-    type=click.Path(file_okay=True, dir_okay=False, writeable=True, readable=True),
+    type=click.Path(file_okay=True, dir_okay=False, writable=True, readable=True),
     help="A file to additionally send logging to.",
 )
 def cli(log_level, log_file):
