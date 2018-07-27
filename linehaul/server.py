@@ -139,12 +139,18 @@ def log_retries(logger):
         level = min(
             [logging.WARNING, (10 * retry_obj.statistics.get("attempt_number", 1))]
         )
+        reason_text = "exception" if last_result.failed else "result"
+        reason_value = (
+            last_result.exception() if last_result.failed else last_result.result()
+        )
         logger.log(
             level,
-            "Retrying %s in %2d seconds (attempt %2d).",
+            "Retrying %s in %2d seconds (attempt %2d) due to %s: %r.",
             retry_obj.fn.__qualname__,
             sleep,
             retry_obj.statistics.get("attempt_number", None),
+            reason_text,
+            reason_value,
         )
 
     return log_it
