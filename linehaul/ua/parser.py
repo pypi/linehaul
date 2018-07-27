@@ -232,6 +232,16 @@ class Parser:
 
         return {"installer": {"name": "Artifactory", "version": m.group("version")}}
 
+    _nexus_re = re.compile(r"^Nexus/(?P<version>\S+)")
+
+    @classmethod
+    def nexus_format(cls, user_agent):
+        m = cls._nexus_re.search(user_agent)
+        if m is None:
+            return
+
+        return {"installer": {"name": "Nexus", "version": m.group("version")}}
+
     _pep381client_re = re.compile(r"^pep381client(?:-proxy)?/(?P<version>\S+)$")
 
     @classmethod
