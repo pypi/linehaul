@@ -129,7 +129,7 @@ async def handle_connection(
         logger.debug("{%s}: Buffer too large; Dropping connection.", peer_id)
     except TruncatedLineError as exc:
         logger.debug("{%s}: Truncated line %r; Dropping connection.", peer_id, exc.line)
-    except BaseException:
+    except Exception:
         logger.exception("Unhandled error in connection:")
     finally:
         with trio.move_on_after(cleanup_timeout):
