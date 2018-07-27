@@ -337,6 +337,8 @@ def server(
             ),
             restrict_keyboard_interrupt_to_checkpoints=True,
         )
+    except KeyboardInterrupt:
+        raise
     except BaseException:
         logger.exception("Unhandled error in server.")
         raise
