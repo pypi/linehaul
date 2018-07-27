@@ -12,8 +12,6 @@
 
 import datetime
 
-from typing import Optional
-
 import arrow
 import attr
 import attr.validators
