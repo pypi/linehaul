@@ -1,0 +1,7 @@
+comment: off
+
+coverage:
+  status:
+    patch:
+      default:
+        target: 100
