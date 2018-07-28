@@ -10,23 +10,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
+import pyparsing
 
-from linehaul.syslog import Facility, Severity
+from hypothesis import given, strategies as st
+
 from linehaul.syslog.parser import SyslogMessage, parse
 
 
-def test_basic():
-    msg = parse("<134>2018-07-20T02:19:20Z cache-itm18828 linehaul[411617]: A Message!")
+def _unparse_syslog_message(sm):
+    pri = (sm.facility.value * 8) + sm.severity.value
+    timestamp = sm.timestamp.isoformat()
+    hostname = "-" if sm.hostname is None else sm.hostname
+    return f"<{pri}>{timestamp}Z {hostname} {sm.appname}[{sm.procid}]: {sm.message}"
 
-    assert msg == SyslogMessage(
-        facility=Facility.local0,
-        severity=Severity.informational,
-        timestamp=datetime.datetime(
-            year=2018, month=7, day=20, hour=2, minute=19, second=20
+
+@given(
+    st.builds(
+        SyslogMessage,
+        timestamp=st.datetimes(),
+        hostname=(
+            st.none() | st.text(alphabet=pyparsing.printables, min_size=1, max_size=100)
         ),
-        hostname="cache-itm18828",
-        appname="linehaul",
-        procid="411617",
-        message="A Message!",
+        appname=st.text(
+            alphabet=list(set(pyparsing.printables) - set("[]")),
+            min_size=1,
+            max_size=100,
+        ),
+        procid=st.text(
+            alphabet=list(set(pyparsing.printables) - set("[]")),
+            min_size=1,
+            max_size=100,
+        ),
+        message=st.text(min_size=1, max_size=250).filter(
+            lambda i: not (set(i) & set("\n\t"))
+        ),
     )
+)
+def test_syslog_parsing(syslog_message):
+    line = _unparse_syslog_message(syslog_message)
+    assert parse(line) == syslog_message
