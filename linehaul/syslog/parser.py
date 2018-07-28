@@ -41,7 +41,7 @@ LBRACKET = L("[").suppress()
 RBRACKET = L("]").suppress()
 COLON = L(":").suppress()
 
-NIL = L('"-"')
+NIL = L("-")
 NIL.setName("Nil")
 NIL.setParseAction(lambda s, l, t: NilValue)
 
@@ -54,7 +54,7 @@ TIMESTAMP = Word(printables)
 TIMESTAMP = TIMESTAMP.setResultsName("timestamp")
 TIMESTAMP.setName("Timestamp")
 
-HOSTNAME = Combine(NIL | Word(printables))
+HOSTNAME = NIL | Word(printables)
 HOSTNAME = HOSTNAME.setResultsName("hostname")
 HOSTNAME.setName("Hostname")
 
