@@ -11,6 +11,7 @@
 .idea
 .pytest_cache/
 .hypothesis/
+__pycache__/
 
 docs/_build/
 build/
