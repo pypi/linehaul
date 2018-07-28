@@ -29,7 +29,10 @@ def _unparse_syslog_message(sm):
         SyslogMessage,
         timestamp=st.datetimes(),
         hostname=(
-            st.none() | st.text(alphabet=pyparsing.printables, min_size=1, max_size=100)
+            st.none()
+            | st.text(alphabet=pyparsing.printables, min_size=1, max_size=100).filter(
+                lambda i: i != "-"
+            )
         ),
         appname=st.text(
             alphabet=list(set(pyparsing.printables) - set("[]")),
