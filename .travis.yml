@@ -1,15 +1,18 @@
 sudo: required
 
 language: python
+python: 3.6
 
 services:
   - docker
 
 install:
+  - pip install coverage
   - docker-compose build
 
 script:
   - make tests
 
 after_success:
+  - coverage combine .coverage
   - bash <(curl -s https://codecov.io/bash)

@@ -1,2 +1,7 @@
 [run]
 branch = True
+
+[paths]
+source =
+    linehaul
+    /opt/linehaul/src/linehaul
