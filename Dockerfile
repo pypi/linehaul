@@ -1,6 +1,6 @@
 # We're going to build our actual application, but not the actual production
 # image that it gets deployed into.
-FROM python:3.6.3-slim-stretch as build
+FROM pypy:3-6.0.0-slim as build
 
 # Define whether we're building a production or a development image. This will
 # generally be used to control whether or not we install our development and
@@ -12,13 +12,13 @@ ARG DEVEL=no
 RUN set -x \
     && apt-get update \
     && apt-get install --no-install-recommends -y \
-        build-essential libffi-dev \
+        build-essential libffi-dev libssl-dev \
         $(if [ "$DEVEL" = "yes" ]; then echo 'libjpeg-dev'; fi)
 
 # We create an /opt directory with a virtual environment in it to store our
 # application in.
 RUN set -x \
-    && python3 -m venv /opt/linehaul
+    && pypy3 -m venv /opt/linehaul
 
 
 # Now that we've created our virtual environment, we'll go ahead and update
@@ -53,7 +53,7 @@ RUN set -x \
 
 # Now we're going to build our actual application image, which will eventually
 # pull in the static files that were built above.
-FROM python:3.6.3-slim-stretch
+FROM pypy:3-6.0.0-slim
 
 # Setup some basic environment variables that are ~never going to change.
 ENV PYTHONUNBUFFERED 1
