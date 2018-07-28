@@ -1,0 +1,12 @@
+sudo: required
+
+language: python
+
+services:
+  - docker
+
+install:
+  - docker-compose build
+
+script:
+  - make tests
