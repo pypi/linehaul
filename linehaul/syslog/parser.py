@@ -54,7 +54,7 @@ TIMESTAMP = Word(printables)
 TIMESTAMP = TIMESTAMP.setResultsName("timestamp")
 TIMESTAMP.setName("Timestamp")
 
-HOSTNAME = NIL | Word(printables)
+HOSTNAME = NIL ^ Word(printables)
 HOSTNAME = HOSTNAME.setResultsName("hostname")
 HOSTNAME.setName("Hostname")
 

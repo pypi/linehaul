@@ -10,10 +10,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
+
 import pyparsing
 
-from hypothesis import given, strategies as st
+from hypothesis import example, given, strategies as st
 
+from linehaul.syslog import Facility, Severity
 from linehaul.syslog.parser import SyslogMessage, parse
 
 
@@ -47,6 +50,17 @@ def _unparse_syslog_message(sm):
         message=st.text(min_size=1, max_size=250).filter(
             lambda i: not (set(i) & set("\n\t"))
         ),
+    )
+)
+@example(
+    SyslogMessage(
+        facility=Facility.kernel,
+        severity=Severity.emergency,
+        timestamp=datetime.datetime(2000, 1, 1, 0, 0),
+        hostname="-0",
+        appname="0",
+        procid="0",
+        message="0",
     )
 )
 def test_syslog_parsing(syslog_message):
