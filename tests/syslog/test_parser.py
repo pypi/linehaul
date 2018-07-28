@@ -13,11 +13,12 @@
 import datetime
 
 import pyparsing
+import pytest
 
 from hypothesis import example, given, strategies as st
 
 from linehaul.syslog import Facility, Severity
-from linehaul.syslog.parser import SyslogMessage, parse
+from linehaul.syslog.parser import SyslogMessage, UnparseableSyslogMessage, parse
 
 
 def _unparse_syslog_message(sm):
@@ -66,3 +67,14 @@ def _unparse_syslog_message(sm):
 def test_syslog_parsing(syslog_message):
     line = _unparse_syslog_message(syslog_message)
     assert parse(line) == syslog_message
+
+
+# TODO: This can techincally produce a string that is a valid Syslog line, however it is
+#       very unlikely that it will do so. Maybe we should filter this somehow, but all
+#       the filtering I can think of at the moment is just going to more or less test
+#       one failure case. Maybe we should be looking for specific failure cases using
+#       a number of strategies to build up a fake line with fake data?
+@given(st.text(max_size=250))
+def test_syslog_parsing_fails(line):
+    with pytest.raises(UnparseableSyslogMessage):
+        parse(line)
