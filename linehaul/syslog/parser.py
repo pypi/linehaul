@@ -86,7 +86,7 @@ class SyslogMessage:
     )
     timestamp = attr.ib(
         type=datetime.datetime,
-        converter=lambda t: arrow.get(t).datetime,
+        converter=lambda t: arrow.get(t).naive,
         validator=attr.validators.instance_of(datetime.datetime),
     )
     hostname = attr.ib(
