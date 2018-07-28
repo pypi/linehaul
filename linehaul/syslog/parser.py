@@ -109,6 +109,8 @@ def parse(message):
         parsed = SYSLOG_MESSAGE.parseString(message, parseAll=True)
     except ParseException as exc:
         raise UnparseableSyslogMessage(str(exc)) from None
+    except IndexError:
+        raise RuntimeError
 
     data = {}
     data["facility"] = int(parsed.priority / 8)
