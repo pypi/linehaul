@@ -2,6 +2,7 @@ comment: off
 
 coverage:
   status:
+    project: off
     patch:
       default:
         target: 100
