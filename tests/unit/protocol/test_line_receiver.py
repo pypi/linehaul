@@ -22,7 +22,7 @@ from linehaul.protocol.line_receiver import (
     TruncatedLineError,
 )
 
-from ..strategies import line_delimited_data as _line_delimited_data, chunked
+from ...strategies import line_delimited_data as _line_delimited_data, chunked
 
 
 _max_line_size = st.integers(min_value=1, max_value=32768)
