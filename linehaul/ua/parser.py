@@ -377,9 +377,11 @@ def parse(user_agent, *, _parsers=USER_AGENT_PARSERS):
     for parser in _parsers:
         if parser.test(user_agent):
             try:
-                return cattr.structure(parser(user_agent), UserAgent)
+                parsed = parser(user_agent)
             except UnableToParse:
                 pass
+            else:
+                return cattr.structure(parsed, UserAgent)
 
     # This handles user agents that we haven't ported over to the new mechanism for
     # parsing yet.
