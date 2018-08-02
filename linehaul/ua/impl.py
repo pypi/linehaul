@@ -19,6 +19,13 @@ class UnableToParse(Exception):
 
 
 class UserAgentParser(metaclass=abc.ABCMeta):
+    @property
+    @abc.abstractmethod
+    def name(self):
+        """
+        Returns the name of this parser, useful for things like logging etc.
+        """
+
     @abc.abstractmethod
     def test(self, ua):
         """
@@ -42,8 +49,16 @@ class UserAgentParser(metaclass=abc.ABCMeta):
 
 
 class CallbackUserAgentParser(UserAgentParser):
-    def __init__(self, callback):
+    def __init__(self, callback, *, name=None):
+        if name is None:
+            name = callback.__name__
+
         self._callback = callback
+        self._name = name
+
+    @property
+    def name(self):
+        return self._name
 
     def test(self, ua):
         # Our callback format doesn't give us the ability to determine ahead of time if
@@ -61,11 +76,19 @@ def ua_parser(fn):
 
 
 class RegexUserAgentParser(UserAgentParser):
-    def __init__(self, regexes, handler):
+    def __init__(self, regexes, handler, *, name=None):
+        if name is None:
+            name = handler.__name__
+
         self._regexes = [
             re.compile(regex) if isinstance(regex, str) else regex for regex in regexes
         ]
         self._handler = handler
+        self._name = name
+
+    @property
+    def name(self):
+        return self._name
 
     def test(self, user_agent):
         return any(regex.search(user_agent) is not None for regex in self._regexes)

@@ -380,6 +380,10 @@ def parse(user_agent, *, _parsers=USER_AGENT_PARSERS):
                 parsed = parser(user_agent)
             except UnableToParse:
                 pass
+            except Exception:
+                logger.error(
+                    "Error parsing %r as a %s", user_agent, parser.name, exc_info=True
+                )
             else:
                 return cattr.structure(parsed, UserAgent)
 
