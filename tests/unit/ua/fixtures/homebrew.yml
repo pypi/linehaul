@@ -1,0 +1,8 @@
+- ua: Homebrew/0.9.9 (Macintosh; Intel macOS 10.12.0) curl/7.43.0
+  result:
+    installer:
+      name: Homebrew
+      version: 0.9.9
+    distro:
+      name: OS X
+      version: 10.12.0

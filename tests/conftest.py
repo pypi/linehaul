@@ -10,7 +10,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from linehaul.ua.datastructures import UserAgent
+import os.path
+
+import pytest
 
 
-__all__ = ["UserAgent"]
+def pytest_collection_modifyitems(items):
+    for item in items:
+        if not hasattr(item, "module"):  # e.g.: DoctestTextfile
+            continue
+
+        module_path = os.path.relpath(
+            item.module.__file__, os.path.commonprefix([__file__, item.module.__file__])
+        )
+
+        module_root_dir = module_path.split(os.pathsep)[0]
+        if module_root_dir.startswith("unit"):
+            item.add_marker(pytest.mark.unit)

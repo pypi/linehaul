@@ -1,0 +1,3 @@
+- ua: Python-urllib/2.7
+  result:
+    python: '2.7'

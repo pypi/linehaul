@@ -1,0 +1,4 @@
+- ua: fetch libfetch/2.0
+  result:
+    installer:
+      name: OS

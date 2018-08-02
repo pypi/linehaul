@@ -1,0 +1,6 @@
+- ua: Python-urllib/3.6 distribute/0.6.21
+  result:
+    installer:
+      name: distribute
+      version: 0.6.21
+    python: '3.6'

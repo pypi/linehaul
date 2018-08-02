@@ -1,0 +1,5 @@
+- ua: pex/1.4.5
+  result:
+    installer:
+      name: pex
+      version: 1.4.5

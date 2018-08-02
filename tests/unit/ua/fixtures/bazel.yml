@@ -1,0 +1,17 @@
+- ua: Bazel/1.0
+  result:
+    installer:
+      name: Bazel
+      version: '1.0'
+
+- ua: Bazel/release 1.0
+  result:
+    installer:
+      name: Bazel
+      version: '1.0'
+
+- ua: Bazel/1.0 dev
+  result:
+    installer:
+      name: Bazel
+      version: 1.0 dev

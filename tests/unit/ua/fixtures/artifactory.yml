@@ -1,0 +1,5 @@
+- ua: Artifactory/1.7.4
+  result:
+    installer:
+      name: Artifactory
+      version: 1.7.4

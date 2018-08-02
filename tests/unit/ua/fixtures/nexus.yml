@@ -1,0 +1,5 @@
+- ua: Nexus/3.6.0-02 (OSS; Linux; 4.4.0-62-generic; amd64; 1.8.0_144)
+  result:
+    installer:
+      name: Nexus
+      version: 3.6.0-02

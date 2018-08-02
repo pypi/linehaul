@@ -1,0 +1,13 @@
+- ua: setuptools/1.0 Python-urllib/3.6
+  result:
+    installer:
+      name: setuptools
+      version: '1.0'
+    python: '3.6'
+
+- ua: Python-urllib/3.6 setuptools/1.0
+  result:
+    installer:
+      name: setuptools
+      version: '1.0'
+    python: '3.6'

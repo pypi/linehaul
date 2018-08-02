@@ -1,0 +1,33 @@
+# Pip 6 Format
+- ua: 'pip/18.0 {"cpu":"x86_64","distro":{"name":"macOS","version":"10.13.6"},"implementation":{"name":"PyPy","version":"6.0.0"},"installer":{"name":"pip","version":"18.0"},"openssl_version":"LibreSSL 2.6.2","python":"3.5.3","setuptools_version":"40.0.0","system":{"name":"Darwin","release":"17.7.0"}}'
+  result:
+    installer:
+      name: pip
+      version: '18.0'
+    python: 3.5.3
+    implementation:
+      name: PyPy
+      version: 6.0.0
+    distro:
+      name: macOS
+      version: 10.13.6
+    system:
+      name: Darwin
+      release: 17.7.0
+    cpu: x86_64
+    openssl_version: LibreSSL 2.6.2
+    setuptools_version: 40.0.0
+
+# Pip 1.4 Format
+- ua: 'pip/1.4.1 CPython/2.7.14 Darwin/17.7.0'
+  result:
+    installer:
+      name: pip
+      version: 1.4.1
+    python: 2.7.14
+    implementation:
+      name: CPython
+      version: 2.7.14
+    system:
+      name: Darwin
+      release: 17.7.0

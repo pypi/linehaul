@@ -14,14 +14,13 @@ import json
 import logging
 import re
 
-from typing import Optional
-
-import attr
-import attr.validators
 import cattr
 import packaging.version
 
 from packaging.specifiers import SpecifierSet
+
+from linehaul.ua.datastructures import UserAgent
+from linehaul.ua.impl import ParserSet, UnableToParse, ua_parser, regex_ua_parser
 
 
 logger = logging.getLogger(__name__)
@@ -31,433 +30,283 @@ class UnknownUserAgentError(ValueError):
     pass
 
 
-@attr.s(slots=True, frozen=True)
-class Installer:
-
-    name = attr.ib(type=Optional[str], default=None)
-    version = attr.ib(type=Optional[str], default=None)
-
-
-@attr.s(slots=True, frozen=True)
-class Implementation:
-
-    name = attr.ib(type=Optional[str], default=None)
-    version = attr.ib(type=Optional[str], default=None)
+# Note: This is a ParserSet, not a ParserList, parsers that have been registered with
+#       it may be called in any order. That means that all of our parsers need to be
+#       ordering independent.
+_parser = ParserSet()
 
 
-@attr.s(slots=True, frozen=True)
-class LibC:
+@_parser.register
+@ua_parser
+def Pip6UserAgent(user_agent):
+    # We're only concerned about pip user agents.
+    if not user_agent.startswith("pip/"):
+        raise UnableToParse
 
-    lib = attr.ib(type=Optional[str], default=None)
-    version = attr.ib(type=Optional[str], default=None)
+    # This format was brand new in pip 6.0, so we'll need to restrict it
+    # to only versions of pip newer than that.
+    version_str = user_agent.split()[0].split("/", 1)[1]
+    version = packaging.version.parse(version_str)
+    if version not in SpecifierSet(">=6", prereleases=True):
+        raise UnableToParse
 
-
-@attr.s(slots=True, frozen=True)
-class Distro:
-
-    name = attr.ib(type=Optional[str], default=None)
-    version = attr.ib(type=Optional[str], default=None)
-    id = attr.ib(type=Optional[str], default=None)
-    libc = attr.ib(type=Optional[LibC], default=None)
-
-
-@attr.s(slots=True, frozen=True)
-class System:
-
-    name = attr.ib(type=Optional[str], default=None)
-    release = attr.ib(type=Optional[str], default=None)
+    try:
+        return json.loads(user_agent.split(maxsplit=1)[1])
+    except (json.JSONDecodeError, UnicodeDecodeError, IndexError):
+        raise UnableToParse from None
 
 
-@attr.s(slots=True, frozen=True)
-class UserAgent:
-
-    installer = attr.ib(type=Optional[Installer], default=None)
-    python = attr.ib(type=Optional[str], default=None)
-    implementation = attr.ib(type=Optional[Implementation], default=None)
-    distro = attr.ib(type=Optional[Distro], default=None)
-    system = attr.ib(type=Optional[System], default=None)
-    cpu = attr.ib(type=Optional[str], default=None)
-    openssl_version = attr.ib(type=Optional[str], default=None)
-    setuptools_version = attr.ib(type=Optional[str], default=None)
-
-
-class Parser:
-    @staticmethod
-    def pip_6_format(user_agent):
-        # We're only concerned about pip user agents.
-        if not user_agent.startswith("pip/"):
-            return
-
-        # This format was brand new in pip 6.0, so we'll need to restrict it
-        # to only versions of pip newer than that.
-        version_str = user_agent.split()[0].split("/", 1)[1]
-        version = packaging.version.parse(version_str)
-        if version not in SpecifierSet(">=6", prereleases=True):
-            return
-
-        try:
-            return json.loads(user_agent.split(maxsplit=1)[1])
-        except json.JSONDecodeError:
-            return
-
-    @staticmethod
-    def pip_1_4_format(user_agent):
-        # We're only concerned about pip user agents.
-        if not user_agent.startswith("pip/"):
-            return
-
-        # This format was brand new in pip 1.4, and went away in pip 6.0, so
-        # we'll need to restrict it to only versions of pip between 1.4 and 6.0
-        version_str = user_agent.split()[0].split("/", 1)[1]
-        version = packaging.version.parse(version_str)
-        if version not in SpecifierSet(">=1.4,<6", prereleases=True):
-            return
-
-        _, impl, system = user_agent.split(maxsplit=2)
-
-        data = {
-            "installer": {"name": "pip", "version": version_str},
-            "implementation": {"name": impl.split("/", 1)[0]},
-        }
-
-        if not impl.endswith("/Unknown"):
-            data["implementation"]["version"] = impl.split("/", 1)[1]
-
-        if not system.startswith("Unknown/"):
-            data.setdefault("system", {})["name"] = system.split("/", 1)[0]
-
-        if not system.endswith("/Unknown"):
-            data.setdefault("system", {})["release"] = system.split("/", 1)[1]
-
-        if data["implementation"]["name"].lower() == "cpython" and data[
-            "implementation"
-        ].get("version"):
-            data["python"] = data["implementation"]["version"]
-
-        return data
-
-    _distribute_re = re.compile(
-        r"^Python-urllib/(?P<python>\d\.\d) distribute/(?P<version>\S+)$"
+@_parser.register
+@regex_ua_parser(
+    (
+        r"^pip/(?P<version>\S+) (?P<impl_name>\S+)/(?P<impl_version>\S+) "
+        r"(?P<system_name>\S+)/(?P<system_release>\S+)$"
     )
+)
+def Pip1_4UserAgent(*, version, impl_name, impl_version, system_name, system_release):
+    # This format was brand new in pip 1.4, and went away in pip 6.0, so
+    # we'll need to restrict it to only versions of pip between 1.4 and 6.0.
+    if version not in SpecifierSet(">=1.4,<6", prereleases=True):
+        raise UnableToParse
 
-    @classmethod
-    def distribute_format(cls, user_agent):
-        m = cls._distribute_re.search(user_agent)
-        if m is None:
-            return
+    data = {"installer": {"name": "pip", "version": version}}
 
-        return {
-            "installer": {"name": "distribute", "version": m.group("version")},
-            "python": m.group("python"),
-        }
+    if impl_name.lower() != "unknown":
+        data.setdefault("implementation", {})["name"] = impl_name
 
-    _setuptools_re = re.compile(
-        r"^Python-urllib/(?P<python>\d\.\d) setuptools/(?P<version>\S+)$"
+    if impl_version.lower() != "unknown":
+        data.setdefault("implementation", {})["version"] = impl_version
+
+    if system_name.lower() != "unknown":
+        data.setdefault("system", {})["name"] = system_name
+
+    if system_release.lower() != "unknown":
+        data.setdefault("system", {})["release"] = system_release
+
+    if impl_name.lower() == "cpython":
+        data["python"] = impl_version
+
+    return data
+
+
+@_parser.register
+@regex_ua_parser(r"^Python-urllib/(?P<python>\d\.\d) distribute/(?P<version>\S+)$")
+def DistributeUserAgent(*, python, version):
+    return {"installer": {"name": "distribute", "version": version}, "python": python}
+
+
+@_parser.register
+@regex_ua_parser(
+    r"^Python-urllib/(?P<python>\d\.\d) setuptools/(?P<version>\S+)$",
+    r"^setuptools/(?P<version>\S+) Python-urllib/(?P<python>\d\.\d)$",
+)
+def SetuptoolsUserAgent(*, python, version):
+    return {"installer": {"name": "setuptools", "version": version}, "python": python}
+
+
+@_parser.register
+@regex_ua_parser(r"pex/(?P<version>\S+)$")
+def PexUserAgent(*, version):
+    return {"installer": {"name": "pex", "version": version}}
+
+
+@_parser.register
+@regex_ua_parser(r"^conda/(?P<version>\S+)(?: .+)?$")
+def CondaUserAgent(*, version):
+    return {"installer": {"name": "conda", "version": version}}
+
+
+@_parser.register
+@regex_ua_parser(r"^Bazel/(?:release\s+)?(?P<version>.+)$")
+def BazelUserAgent(*, version):
+    return {"installer": {"name": "Bazel", "version": version}}
+
+
+@_parser.register
+@regex_ua_parser(r"^bandersnatch/(?P<version>\S+) \(.+\)$")
+def BandersnatchUserAgent(*, version):
+    return {"installer": {"name": "bandersnatch", "version": version}}
+
+
+@_parser.register
+@regex_ua_parser(r"devpi-server/(?P<version>\S+) \(.+\)$")
+def DevPIUserAgent(*, version):
+    return {"installer": {"name": "devpi", "version": version}}
+
+
+@_parser.register
+@regex_ua_parser(r"^z3c\.pypimirror/(?P<version>\S+)$")
+def Z3CPyPIMirrorUserAgent(*, version):
+    return {"installer": {"name": "z3c.pypimirror", "version": version}}
+
+
+@_parser.register
+@regex_ua_parser(r"^Artifactory/(?P<version>\S+)$")
+def ArtifactoryUserAgent(*, version):
+    return {"installer": {"name": "Artifactory", "version": version}}
+
+
+@_parser.register
+@regex_ua_parser(r"^Nexus/(?P<version>\S+)")
+def NexusUserAgent(*, version):
+    return {"installer": {"name": "Nexus", "version": version}}
+
+
+@_parser.register
+@regex_ua_parser(r"^pep381client(?:-proxy)?/(?P<version>\S+)$")
+def PEP381ClientUserAgent(*, version):
+    return {"installer": {"name": "pep381client", "version": version}}
+
+
+# TODO: We should probably consider not parsing this specially, and moving it to
+#       just the same as we treat browsers, since we don't really know anything
+#       about it-- including whether or not the version of Python mentioned is
+#       the one they're going to install it into or not. The one real sticking
+#       point is that before pip 1.4, pip just used the default urllib2 UA, so
+#       right now we're counting pip 1.4 in here... but pip 1.4 usage is probably
+#       low enough not to worry about that any more.
+@_parser.register
+@regex_ua_parser(r"^Python-urllib/(?P<python>\d\.\d)$")
+def URLLib2UserAgent(*, python):
+    return {"python": python}
+
+
+# TODO: We should probably consider not parsing this specially, and moving it to
+#       just the same as we treat browsers, since we don't really know anything
+#       about it and the version of requests isn't very useful in general.
+@_parser.register
+@regex_ua_parser(r"^python-requests/(?P<version>\S+)(?: .+)?$")
+def RequestsUserAgent(*, version):
+    return {"installer": {"name": "requests", "version": version}}
+
+
+@_parser.register
+@regex_ua_parser(
+    (
+        r"^Homebrew/(?P<version>\S+) "
+        r"\(Macintosh; Intel (?:Mac OS X|macOS) (?P<osx_version>[^)]+)\)(?: .+)?$"
     )
+)
+def HomebrewUserAgent(*, version, osx_version):
+    return {
+        "installer": {"name": "Homebrew", "version": version},
+        "distro": {"name": "OS X", "version": osx_version},
+    }
 
-    _setuptools_new_re = re.compile(
-        r"^setuptools/(?P<version>\S+) Python-urllib/(?P<python>\d\.\d)$"
-    )
 
-    @classmethod
-    def setuptools_format(cls, user_agent):
-        m = cls._setuptools_re.search(user_agent)
-        if m is None:
-            m = cls._setuptools_new_re.search(user_agent)
-            if m is None:
-                return
-
-        return {
-            "installer": {"name": "setuptools", "version": m.group("version")},
-            "python": m.group("python"),
-        }
-
-    _pex_re = re.compile(r"pex/(?P<version>\S+)$")
-
-    @classmethod
-    def pex_format(cls, user_agent):
-        m = cls._pex_re.search(user_agent)
-        if m is None:
-            return
-
-        return {"installer": {"name": "pex", "version": m.group("version")}}
-
-    _conda_re = re.compile(r"^conda/(?P<version>\S+)(?: .+)?$")
-
-    @classmethod
-    def conda_format(cls, user_agent):
-        m = cls._conda_re.search(user_agent)
-        if m is None:
-            return
-
-        return {"installer": {"name": "conda", "version": m.group("version")}}
-
-    _bazel_re = re.compile(r"^Bazel/(?P<version>.+)$")
-
-    @classmethod
-    def bazel_format(cls, user_agent):
-        m = cls._bazel_re.search(user_agent)
-        if m is None:
-            return
-
-        version = m.group("version")
-        if version.startswith("release "):
-            version = version[8:]
-
-        return {"installer": {"name": "Bazel", "version": version}}
-
-    _bandersnatch_re = re.compile(r"^bandersnatch/(?P<version>\S+) \(.+\)$")
-
-    @classmethod
-    def bandersnatch_format(cls, user_agent):
-        m = cls._bandersnatch_re.search(user_agent)
-        if m is None:
-            return
-
-        return {"installer": {"name": "bandersnatch", "version": m.group("version")}}
-
-    _devpi_re = re.compile(r"devpi-server/(?P<version>\S+) \(.+\)$")
-
-    @classmethod
-    def devpi_format(cls, user_agent):
-        m = cls._devpi_re.search(user_agent)
-        if m is None:
-            return
-
-        return {"installer": {"name": "devpi", "version": m.group("version")}}
-
-    _z3c_pypimirror_re = re.compile(r"^z3c\.pypimirror/(?P<version>\S+)$")
-
-    @classmethod
-    def z3c_pypimirror_format(cls, user_agent):
-        m = cls._z3c_pypimirror_re.search(user_agent)
-        if m is None:
-            return
-
-        return {"installer": {"name": "z3c.pypimirror", "version": m.group("version")}}
-
-    _artifactory_re = re.compile(r"^Artifactory/(?P<version>\S+)$")
-
-    @classmethod
-    def artifactory_format(cls, user_agent):
-        m = cls._artifactory_re.search(user_agent)
-        if m is None:
-            return
-
-        return {"installer": {"name": "Artifactory", "version": m.group("version")}}
-
-    _nexus_re = re.compile(r"^Nexus/(?P<version>\S+)")
-
-    @classmethod
-    def nexus_format(cls, user_agent):
-        m = cls._nexus_re.search(user_agent)
-        if m is None:
-            return
-
-        return {"installer": {"name": "Nexus", "version": m.group("version")}}
-
-    _pep381client_re = re.compile(r"^pep381client(?:-proxy)?/(?P<version>\S+)$")
-
-    @classmethod
-    def pep381client_format(cls, user_agent):
-        m = cls._pep381client_re.search(user_agent)
-        if m is None:
-            return
-
-        return {"installer": {"name": "pep381client", "version": m.group("version")}}
-
-    @staticmethod
-    def urllib2_format(user_agent):
-        # This isn't really a format exactly, prior to pip 1.4 pip used urllib2
-        # and it didn't bother to change the default user agent. This means
-        # we'll miscount this version as higher than it actually is, however
-        # I'm not sure there is any better way around that.
-        if not user_agent.startswith("Python-urllib/"):
-            return
-
-        # Some projects (like setuptools) add an additional item to the end of
-        # the urllib string. We want to make sure this is _only_ Python-urllib
-        if len(user_agent.split()) > 1:
-            return
-
-        return {"python": user_agent.split("/", 1)[1]}
-
-    _requests_re = re.compile(r"^python-requests/(?P<version>\S+)(?: .+)?$")
-
-    @classmethod
-    def requests_format(cls, user_agent):
-        # Older versions of devpi used requests without modifying the user
-        # agent. However this could also just be someone using requests to
-        # download things from PyPI naturally. This means we can't count this
-        # as anything other than requests, but it might be something else.
-        m = cls._requests_re.search(user_agent)
-        if m is None:
-            return
-
-        return {"installer": {"name": "requests", "version": m.group("version")}}
-
-    _os_re = re.compile(
+# TODO: It would be nice to maybe break more of these apart to try and get more insight
+#       into the OSs that people are installing packages into (similiar to Homebrew).
+@_parser.register
+@regex_ua_parser(
+    re.compile(
         r"""
-        (?:
-            ^fetch\ libfetch/\S+$ |
-            ^libfetch/\S+$ |
-            ^OpenBSD\ ftp$ |
-            ^Homebrew\ |
-            ^MacPorts/? |
-            ^NetBSD-ftp/ |
-            ^slapt-get |
-            ^pypi-install/ |
-            ^slackrepo$ |
-            ^PTXdist |
-            ^GARstow/ |
-            ^xbps/
-        )
-        """,
+    (?:
+        ^fetch\ libfetch/\S+$ |
+        ^libfetch/\S+$ |
+        ^OpenBSD\ ftp$ |
+        ^MacPorts/? |
+        ^NetBSD-ftp/ |
+        ^slapt-get |
+        ^pypi-install/ |
+        ^slackrepo$ |
+        ^PTXdist |
+        ^GARstow/ |
+        ^xbps/
+    )
+    """,
         re.VERBOSE,
     )
+)
+def OSUserAgent():
+    return {"installer": {"name": "OS"}}
 
-    @classmethod
-    def os_format(cls, user_agent):
-        m = cls._os_re.search(user_agent)
-        if m is None:
-            return
 
-        return {"installer": {"name": "OS"}}
-
-    _homebrew_re = re.compile(
+@_parser.register
+@regex_ua_parser(
+    re.compile(
         r"""
         ^
-        Homebrew/(?P<version>\S+)
-        \s+
-        \(Macintosh;\ Intel\ Mac\ OS\ X\ (?P<osx_version>[^)]+)\)
-        """,
-        re.VERBOSE,
-    )
-
-    @classmethod
-    def homebrew_format(cls, user_agent):
-        m = cls._homebrew_re.search(user_agent)
-        if m is None:
-            return
-
-        return {
-            "installer": {"name": "Homebrew", "version": m.group("version")},
-            "distro": {"name": "OS X", "version": m.group("osx_version")},
-        }
-
-    _browser_re = re.compile(
-        r"""
-            ^
-            (?:
-                Mozilla |
-                Safari |
-                wget |
-                curl |
-                Opera |
-                aria2 |
-                AndroidDownloadManager |
-                com\.apple\.WebKit\.Networking/ |
-                FDM\ \S+ |
-                URL/Emacs |
-                Firefox/ |
-                UCWEB |
-                Links |
-                ^okhttp |
-                ^Apache-HttpClient
-            )
-            (?:/|$)
-        """,
+        (?:
+            Mozilla |
+            Safari |
+            wget |
+            curl |
+            Opera |
+            aria2 |
+            AndroidDownloadManager |
+            com\.apple\.WebKit\.Networking/ |
+            FDM\ \S+ |
+            URL/Emacs |
+            Firefox/ |
+            UCWEB |
+            Links |
+            ^okhttp |
+            ^Apache-HttpClient
+        )
+        (?:/|$)
+    """,
         re.IGNORECASE | re.VERBOSE,
     )
+)
+def BrowserUserAgent():
+    return {"installer": {"name": "Browser"}}
 
-    @classmethod
-    def browser_format(cls, user_agent):
-        m = cls._browser_re.search(user_agent)
-        if m is None:
-            return
 
-        return {"installer": {"name": "Browser"}}
-
-    _ignore_re = re.compile(
-        r"""
-        (?:
-            ^Datadog\ Agent/ |
-            ^\(null\)$ |
-            ^WordPress/ |
-            ^Chef\ (?:Client|Knife)/ |
-            ^Ruby$ |
-            ^Slackbot-LinkExpanding |
-            ^TextualInlineMedia/ |
-            ^WeeChat/ |
-            ^Download\ Master$ |
-            ^Java/ |
-            ^Go\ \d\.\d\ package\ http$ |
-            ^Go-http-client/ |
-            ^GNU\ Guile$ |
-            ^github-olee$ |
-            ^YisouSpider$ |
-            ^Apache\ Ant/ |
-            ^Salt/ |
-            ^ansible-httpget$ |
-            ^ltx71\ -\ \(http://ltx71.com/\) |
-            ^Scrapy/ |
-            ^spectool/ |
-            Nutch |
-            ^AWSBrewLinkChecker/ |
-            ^Y!J-ASR/ |
-            ^NSIS_Inetc\ \(Mozilla\)$ |
-            ^Debian\ uscan |
-            ^Pingdom\.com_bot_version_\d+\.\d+_\(https?://www.pingdom.com/\)$ |
-            ^MauiBot\ \(crawler\.feedback\+dc@gmail\.com\)$
-        )
-        """,
-        re.VERBOSE,
+# TODO: It would be kind of nice to implement this as just another parser, that returns
+#       None instead of a dictionary. However given that there is no inherent ordering
+#       in a ParserSet, and we want this to always go last (just incase an ignore
+#       pattern is overlly broad) we can't do that. It would be nice to make it possible
+#       to register a parser with an explicit location in the parser set.
+_ignore_re = re.compile(
+    r"""
+    (?:
+        ^Datadog\ Agent/ |
+        ^\(null\)$ |
+        ^WordPress/ |
+        ^Chef\ (?:Client|Knife)/ |
+        ^Ruby$ |
+        ^Slackbot-LinkExpanding |
+        ^TextualInlineMedia/ |
+        ^WeeChat/ |
+        ^Download\ Master$ |
+        ^Java/ |
+        ^Go\ \d\.\d\ package\ http$ |
+        ^Go-http-client/ |
+        ^GNU\ Guile$ |
+        ^github-olee$ |
+        ^YisouSpider$ |
+        ^Apache\ Ant/ |
+        ^Salt/ |
+        ^ansible-httpget$ |
+        ^ltx71\ -\ \(http://ltx71.com/\) |
+        ^Scrapy/ |
+        ^spectool/ |
+        Nutch |
+        ^AWSBrewLinkChecker/ |
+        ^Y!J-ASR/ |
+        ^NSIS_Inetc\ \(Mozilla\)$ |
+        ^Debian\ uscan |
+        ^Pingdom\.com_bot_version_\d+\.\d+_\(https?://www.pingdom.com/\)$ |
+        ^MauiBot\ \(crawler\.feedback\+dc@gmail\.com\)$
     )
-
-    @classmethod
-    def ignored(cls, user_agent):
-        m = cls._ignore_re.search(user_agent)
-        return m is not None
-
-    @classmethod
-    def parse(cls, user_agent):
-        formats = [
-            cls.pip_6_format,
-            cls.pip_1_4_format,
-            cls.setuptools_format,
-            cls.distribute_format,
-            cls.pex_format,
-            cls.conda_format,
-            cls.bazel_format,
-            cls.bandersnatch_format,
-            cls.z3c_pypimirror_format,
-            cls.devpi_format,
-            cls.artifactory_format,
-            cls.nexus_format,
-            cls.pep381client_format,
-            cls.urllib2_format,
-            cls.requests_format,
-            cls.homebrew_format,
-            cls.os_format,
-            cls.browser_format,
-        ]
-
-        for format in formats:
-            try:
-                data = format(user_agent)
-            except Exception as exc:
-                logger.warning(
-                    "Error parsing %r as %s", user_agent, format.__name__, exc_info=True
-                )
-                data = None
-
-            if data is not None:
-                return cattr.structure(data, UserAgent)
-
-        if cls.ignored(user_agent):
-            return
-
-        raise UnknownUserAgentError(user_agent)
+    """,
+    re.VERBOSE,
+)
 
 
-parse = Parser.parse
+def parse(user_agent):
+    try:
+        return cattr.structure(_parser(user_agent), UserAgent)
+    except UnableToParse:
+        # If we were not able to parse the user agent, then we have two options, we can
+        # either raise an `UnknownUserAgentError` or we can return None to explicitly
+        # say that we opted not to parse this user agent. To determine which option we
+        # pick we'll match against a regex of UAs to ignore, if we match then we'll
+        # return a None to indicate to our caller that we couldn't parse this UA, but
+        # that it was an expected inability to parse. Otherwise we'll raise an
+        # `UnknownUserAgentError` to indicate that it as an unexpected inability to
+        # parse.
+        if _ignore_re.search(user_agent) is not None:
+            return None
+
+        raise UnknownUserAgentError from None
