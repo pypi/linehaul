@@ -109,21 +109,15 @@ def CondaUserAgent(*, version):
     return {"installer": {"name": "conda", "version": version}}
 
 
+@regex_ua_parser(r"^Bazel/(?P<version>.+)$")
+def BazelUserAgent(*, version):
+    if version.startswith("release "):
+        version = version[8:]
+
+    return {"installer": {"name": "Bazel", "version": version}}
+
+
 class Parser:
-    _bazel_re = re.compile(r"^Bazel/(?P<version>.+)$")
-
-    @classmethod
-    def bazel_format(cls, user_agent):
-        m = cls._bazel_re.search(user_agent)
-        if m is None:
-            return
-
-        version = m.group("version")
-        if version.startswith("release "):
-            version = version[8:]
-
-        return {"installer": {"name": "Bazel", "version": version}}
-
     _bandersnatch_re = re.compile(r"^bandersnatch/(?P<version>\S+) \(.+\)$")
 
     @classmethod
@@ -340,7 +334,6 @@ class Parser:
     @classmethod
     def parse(cls, user_agent):
         formats = [
-            cls.bazel_format,
             cls.bandersnatch_format,
             cls.z3c_pypimirror_format,
             cls.devpi_format,
@@ -381,6 +374,7 @@ USER_AGENT_PARSERS = [
     SetuptoolsUserAgent,
     PexUserAgent,
     CondaUserAgent,
+    BazelUserAgent,
 ]
 
 
