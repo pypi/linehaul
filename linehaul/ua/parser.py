@@ -122,17 +122,12 @@ def BandersnatchUserAgent(*, version):
     return {"installer": {"name": "bandersnatch", "version": version}}
 
 
+@regex_ua_parser(r"devpi-server/(?P<version>\S+) \(.+\)$")
+def DevPIUserAgent(*, version):
+    return {"installer": {"name": "devpi", "version": version}}
+
+
 class LegacyParser:
-    _devpi_re = re.compile(r"devpi-server/(?P<version>\S+) \(.+\)$")
-
-    @classmethod
-    def devpi_format(cls, user_agent):
-        m = cls._devpi_re.search(user_agent)
-        if m is None:
-            return
-
-        return {"installer": {"name": "devpi", "version": m.group("version")}}
-
     _z3c_pypimirror_re = re.compile(r"^z3c\.pypimirror/(?P<version>\S+)$")
 
     @classmethod
@@ -330,7 +325,6 @@ class LegacyParser:
     def parse(cls, user_agent):
         formats = [
             cls.z3c_pypimirror_format,
-            cls.devpi_format,
             cls.artifactory_format,
             cls.nexus_format,
             cls.pep381client_format,
@@ -370,6 +364,7 @@ USER_AGENT_PARSERS = [
     CondaUserAgent,
     BazelUserAgent,
     BandersnatchUserAgent,
+    DevPIUserAgent,
 ]
 
 
