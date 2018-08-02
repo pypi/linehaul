@@ -161,7 +161,6 @@ class TestPip1_4UserAgent:
 
 
 class TestParse:
-
     @given(st.text())
     def test_unknown_user_agent(self, user_agent):
         with pytest.raises(parser.UnknownUserAgentError):
