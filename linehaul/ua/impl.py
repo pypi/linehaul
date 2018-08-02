@@ -127,7 +127,7 @@ class ParserSet:
                 pass
             except Exception:
                 logger.error(
-                    "Error parsing %r as a %s", user_agent, parser.name, exc_info=True
+                    "Error parsing %r as a %s.", user_agent, parser.name, exc_info=True
                 )
 
         raise UnableToParse
