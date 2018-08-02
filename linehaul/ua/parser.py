@@ -104,17 +104,12 @@ def PexUserAgent(*, version):
     return {"installer": {"name": "pex", "version": version}}
 
 
+@regex_ua_parser(r"^conda/(?P<version>\S+)(?: .+)?$")
+def CondaUserAgent(*, version):
+    return {"installer": {"name": "conda", "version": version}}
+
+
 class Parser:
-    _conda_re = re.compile(r"^conda/(?P<version>\S+)(?: .+)?$")
-
-    @classmethod
-    def conda_format(cls, user_agent):
-        m = cls._conda_re.search(user_agent)
-        if m is None:
-            return
-
-        return {"installer": {"name": "conda", "version": m.group("version")}}
-
     _bazel_re = re.compile(r"^Bazel/(?P<version>.+)$")
 
     @classmethod
@@ -345,7 +340,6 @@ class Parser:
     @classmethod
     def parse(cls, user_agent):
         formats = [
-            cls.conda_format,
             cls.bazel_format,
             cls.bandersnatch_format,
             cls.z3c_pypimirror_format,
@@ -386,6 +380,7 @@ USER_AGENT_PARSERS = [
     DistributeUserAgent,
     SetuptoolsUserAgent,
     PexUserAgent,
+    CondaUserAgent,
 ]
 
 
