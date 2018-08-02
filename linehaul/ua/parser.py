@@ -50,44 +50,39 @@ def Pip6UserAgent(user_agent):
 
     try:
         return json.loads(user_agent.split(maxsplit=1)[1])
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, UnicodeDecodeError, IndexError):
         raise UnableToParse from None
 
 
 @_parser.register
-@ua_parser
-def Pip1_4UserAgent(user_agent):
-    # We're only concerned about pip user agents.
-    if not user_agent.startswith("pip/"):
-        raise UnableToParse
-
+@regex_ua_parser(
+    (
+        r"^pip/(?P<version>\S+) (?P<impl_name>\S+)/(?P<impl_version>\S+) "
+        r"(?P<system_name>\S+)/(?P<system_release>\S+)$"
+    )
+)
+def Pip1_4UserAgent(*, version, impl_name, impl_version, system_name, system_release):
     # This format was brand new in pip 1.4, and went away in pip 6.0, so
-    # we'll need to restrict it to only versions of pip between 1.4 and 6.0
-    version_str = user_agent.split()[0].split("/", 1)[1]
-    version = packaging.version.parse(version_str)
+    # we'll need to restrict it to only versions of pip between 1.4 and 6.0.
     if version not in SpecifierSet(">=1.4,<6", prereleases=True):
         raise UnableToParse
 
-    _, impl, system = user_agent.split(maxsplit=2)
+    data = {"installer": {"name": "pip", "version": version}}
 
-    data = {
-        "installer": {"name": "pip", "version": version_str},
-        "implementation": {"name": impl.split("/", 1)[0]},
-    }
+    if impl_name.lower() != "unknown":
+        data.setdefault("implementation", {})["name"] = impl_name
 
-    if not impl.endswith("/Unknown"):
-        data["implementation"]["version"] = impl.split("/", 1)[1]
+    if impl_version.lower() != "unknown":
+        data.setdefault("implementation", {})["version"] = impl_version
 
-    if not system.startswith("Unknown/"):
-        data.setdefault("system", {})["name"] = system.split("/", 1)[0]
+    if system_name.lower() != "unknown":
+        data.setdefault("system", {})["name"] = system_name
 
-    if not system.endswith("/Unknown"):
-        data.setdefault("system", {})["release"] = system.split("/", 1)[1]
+    if system_release.lower() != "unknown":
+        data.setdefault("system", {})["release"] = system_release
 
-    if data["implementation"]["name"].lower() == "cpython" and data[
-        "implementation"
-    ].get("version"):
-        data["python"] = data["implementation"]["version"]
+    if impl_name.lower() == "cpython":
+        data["python"] = impl_version
 
     return data
 
