@@ -20,7 +20,7 @@ import packaging.version
 from packaging.specifiers import SpecifierSet
 
 from linehaul.ua.datastructures import UserAgent
-from linehaul.ua.impl import UnableToParse, ua_parser, regex_ua_parser
+from linehaul.ua.impl import ParserSet, UnableToParse, ua_parser, regex_ua_parser
 
 
 logger = logging.getLogger(__name__)
@@ -30,6 +30,13 @@ class UnknownUserAgentError(ValueError):
     pass
 
 
+# Note: This is a ParserSet, not a ParserList, parsers that have been registered with
+#       it may be called in any order. That means that all of our parsers need to be
+#       ordering independent.
+_parser = ParserSet()
+
+
+@_parser.register
 @ua_parser
 def Pip6UserAgent(user_agent):
     # We're only concerned about pip user agents.
@@ -49,6 +56,7 @@ def Pip6UserAgent(user_agent):
         raise UnableToParse from None
 
 
+@_parser.register
 @ua_parser
 def Pip1_4UserAgent(user_agent):
     # We're only concerned about pip user agents.
@@ -86,11 +94,13 @@ def Pip1_4UserAgent(user_agent):
     return data
 
 
+@_parser.register
 @regex_ua_parser(r"^Python-urllib/(?P<python>\d\.\d) distribute/(?P<version>\S+)$")
 def DistributeUserAgent(*, python, version):
     return {"installer": {"name": "distribute", "version": version}, "python": python}
 
 
+@_parser.register
 @regex_ua_parser(
     r"^Python-urllib/(?P<python>\d\.\d) setuptools/(?P<version>\S+)$",
     r"^setuptools/(?P<version>\S+) Python-urllib/(?P<python>\d\.\d)$",
@@ -99,16 +109,19 @@ def SetuptoolsUserAgent(*, python, version):
     return {"installer": {"name": "setuptools", "version": version}, "python": python}
 
 
+@_parser.register
 @regex_ua_parser(r"pex/(?P<version>\S+)$")
 def PexUserAgent(*, version):
     return {"installer": {"name": "pex", "version": version}}
 
 
+@_parser.register
 @regex_ua_parser(r"^conda/(?P<version>\S+)(?: .+)?$")
 def CondaUserAgent(*, version):
     return {"installer": {"name": "conda", "version": version}}
 
 
+@_parser.register
 @regex_ua_parser(r"^Bazel/(?P<version>.+)$")
 def BazelUserAgent(*, version):
     if version.startswith("release "):
@@ -117,41 +130,49 @@ def BazelUserAgent(*, version):
     return {"installer": {"name": "Bazel", "version": version}}
 
 
+@_parser.register
 @regex_ua_parser(r"^bandersnatch/(?P<version>\S+) \(.+\)$")
 def BandersnatchUserAgent(*, version):
     return {"installer": {"name": "bandersnatch", "version": version}}
 
 
+@_parser.register
 @regex_ua_parser(r"devpi-server/(?P<version>\S+) \(.+\)$")
 def DevPIUserAgent(*, version):
     return {"installer": {"name": "devpi", "version": version}}
 
 
+@_parser.register
 @regex_ua_parser(r"^z3c\.pypimirror/(?P<version>\S+)$")
 def Z3CPyPIMirrorUserAgent(*, version):
     return {"installer": {"name": "z3c.pypimirror", "version": version}}
 
 
+@_parser.register
 @regex_ua_parser(r"^Artifactory/(?P<version>\S+)$")
 def ArtifactoryUserAgent(*, version):
     return {"installer": {"name": "Artifactory", "version": version}}
 
 
+@_parser.register
 @regex_ua_parser(r"^Nexus/(?P<version>\S+)")
 def NexusUserAgent(*, version):
     return {"installer": {"name": "Nexus", "version": version}}
 
 
+@_parser.register
 @regex_ua_parser(r"^pep381client(?:-proxy)?/(?P<version>\S+)$")
 def PEP381ClientUserAgent(*, version):
     return {"installer": {"name": "pep381client", "version": version}}
 
 
+@_parser.register
 @regex_ua_parser(r"^Python-urllib/(?P<python>\d\.\d)$")
 def URLLib2UserAgent(*, python):
     return {"python": python}
 
 
+@_parser.register
 @regex_ua_parser(r"^python-requests/(?P<version>\S+)(?: .+)?$")
 def RequestsUserAgent(*, version):
     return {"installer": {"name": "requests", "version": version}}
@@ -308,43 +329,11 @@ class LegacyParser:
         raise UnknownUserAgentError(user_agent)
 
 
-# TODO: We should arrange these in order of most common to least common, because the
-#       earlier we find a match, the quicker we can finish parsing this user agent.
-USER_AGENT_PARSERS = [
-    Pip6UserAgent,
-    Pip1_4UserAgent,
-    DistributeUserAgent,
-    SetuptoolsUserAgent,
-    PexUserAgent,
-    CondaUserAgent,
-    BazelUserAgent,
-    BandersnatchUserAgent,
-    DevPIUserAgent,
-    Z3CPyPIMirrorUserAgent,
-    ArtifactoryUserAgent,
-    NexusUserAgent,
-    PEP381ClientUserAgent,
-    URLLib2UserAgent,
-    RequestsUserAgent,
-]
-
-
-def parse(user_agent, *, _parsers=USER_AGENT_PARSERS):
-    for parser in _parsers:
-        if parser.test(user_agent):
-            try:
-                parsed = parser(user_agent)
-            except UnableToParse:
-                pass
-            except Exception:
-                logger.error(
-                    "Error parsing %r as a %s", user_agent, parser.name, exc_info=True
-                )
-            else:
-                return cattr.structure(parsed, UserAgent)
-
-    # This handles user agents that we haven't ported over to the new mechanism for
-    # parsing yet.
-    # TODO: Port over all formats to the new system, and then raise
-    #       UnknownUserAgentError here instead of calling Parser.parse().
-    return LegacyParser.parse(user_agent)
+def parse(user_agent):
+    try:
+        return _parser(user_agent)
+    except UnableToParse:
+        # TODO: This should actually by an UnknownUserAgentError, however until we have
+        #       ported over all of the formats to the new parser, this will instead just
+        #       fall through to the LegacyParser.
+        return LegacyParser.parse(user_agent)

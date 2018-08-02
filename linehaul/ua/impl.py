@@ -11,7 +11,15 @@
 # limitations under the License.
 
 import abc
+import logging
 import re
+
+import cattr
+
+from linehaul.ua.datastructures import UserAgent
+
+
+logger = logging.getLogger(__name__)
 
 
 class UnableToParse(Exception):
@@ -129,3 +137,31 @@ def regex_ua_parser(*regexes):
         return RegexUserAgentParser(regexes, fn)
 
     return deco
+
+
+class ParserSet:
+    def __init__(self):
+        self._parsers = set()
+
+    def register(self, parser):
+        self._parsers.add(parser)
+        return parser
+
+    def __call__(self, user_agent):
+        for parser in self._parsers:
+            if parser.test(user_agent):
+                try:
+                    parsed = parser(user_agent)
+                except UnableToParse:
+                    pass
+                except Exception:
+                    logger.error(
+                        "Error parsing %r as a %s",
+                        user_agent,
+                        parser.name,
+                        exc_info=True,
+                    )
+                else:
+                    return cattr.structure(parsed, UserAgent)
+
+        raise UnableToParse
