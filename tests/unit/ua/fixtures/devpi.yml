@@ -1,0 +1,5 @@
+- ua: 'devpi-server/4.6.0 (py3.7.0; darwin)'
+  result:
+    installer:
+      name: devpi
+      version: 4.6.0

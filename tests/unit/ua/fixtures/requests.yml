@@ -1,0 +1,11 @@
+- ua: python-requests/2.19.1
+  result:
+    installer:
+      name: requests
+      version: 2.19.1
+
+- ua: 'python-requests/2.7.0 CPython/3.7.0 Darwin/17.7.0'
+  result:
+    installer:
+      name: requests
+      version: 2.7.0

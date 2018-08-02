@@ -1,0 +1,11 @@
+- ua: pep381client/1.0.1
+  result:
+    installer:
+      name: pep381client
+      version: 1.0.1
+
+- ua: pep381client-proxy/0.5.6
+  result:
+    installer:
+      name: pep381client
+      version: 0.5.6

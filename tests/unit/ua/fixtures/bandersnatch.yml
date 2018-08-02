@@ -1,0 +1,5 @@
+- ua: 'bandersnatch/2.2.1 (cpython 3.7.0-final0, Darwin x86_64)'
+  result:
+    installer:
+      name: bandersnatch
+      version: 2.2.1

@@ -10,4 +10,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from linehaul.ua.parser import parse
+import os.path
+
+import cattr
+import pytest
+import yaml
+
+from linehaul.ua.parser import UserAgent, parse
+
+
+FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
+
+
+def load_ua_fixtures(fixture_dir):
+    fixtures = os.listdir(fixture_dir)
+    for filename in fixtures:
+        with open(os.path.join(fixture_dir, filename), "r") as fp:
+            fixtures = yaml.safe_load(fp.read())
+        for fixture in fixtures:
+            ua = fixture.pop("ua")
+            expected = cattr.structure(fixture.pop("result"), UserAgent)
+            assert fixture == {}
+            yield ua, expected
+
+
+@pytest.mark.parametrize(("ua", "expected"), load_ua_fixtures(FIXTURE_DIR))
+def test_user_agent_parsing(ua, expected):
+    assert parse(ua) == expected

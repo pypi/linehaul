@@ -1,0 +1,5 @@
+- ua: z3c.pypimirror/1.5.6
+  result:
+    installer:
+      name: z3c.pypimirror
+      version: 1.5.6
