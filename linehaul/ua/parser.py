@@ -14,10 +14,12 @@ import json
 import logging
 import re
 
+import cattr
 import packaging.version
 
 from packaging.specifiers import SpecifierSet
 
+from linehaul.ua.datastructures import UserAgent
 from linehaul.ua.impl import ParserSet, UnableToParse, ua_parser, regex_ua_parser
 
 
@@ -294,7 +296,7 @@ _ignore_re = re.compile(
 
 def parse(user_agent):
     try:
-        return _parser(user_agent)
+        return cattr.structure(_parser(user_agent), UserAgent)
     except UnableToParse:
         # If we were not able to parse the user agent, then we have two options, we can
         # either raise an `UnknownUserAgentError` or we can return None to explicitly

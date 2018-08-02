@@ -14,10 +14,6 @@ import abc
 import logging
 import re
 
-import cattr
-
-from linehaul.ua.datastructures import UserAgent
-
 
 logger = logging.getLogger(__name__)
 
@@ -126,14 +122,12 @@ class ParserSet:
     def __call__(self, user_agent):
         for parser in self._parsers:
             try:
-                parsed = parser(user_agent)
+                return parser(user_agent)
             except UnableToParse:
                 pass
             except Exception:
                 logger.error(
                     "Error parsing %r as a %s", user_agent, parser.name, exc_info=True
                 )
-            else:
-                return cattr.structure(parsed, UserAgent)
 
         raise UnableToParse
