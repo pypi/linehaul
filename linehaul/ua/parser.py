@@ -137,17 +137,12 @@ def ArtifactoryUserAgent(*, version):
     return {"installer": {"name": "Artifactory", "version": version}}
 
 
+@regex_ua_parser(r"^Nexus/(?P<version>\S+)")
+def NexusUserAgent(*, version):
+    return {"installer": {"name": "Nexus", "version": version}}
+
+
 class LegacyParser:
-    _nexus_re = re.compile(r"^Nexus/(?P<version>\S+)")
-
-    @classmethod
-    def nexus_format(cls, user_agent):
-        m = cls._nexus_re.search(user_agent)
-        if m is None:
-            return
-
-        return {"installer": {"name": "Nexus", "version": m.group("version")}}
-
     _pep381client_re = re.compile(r"^pep381client(?:-proxy)?/(?P<version>\S+)$")
 
     @classmethod
@@ -314,7 +309,6 @@ class LegacyParser:
     @classmethod
     def parse(cls, user_agent):
         formats = [
-            cls.nexus_format,
             cls.pep381client_format,
             cls.urllib2_format,
             cls.requests_format,
@@ -355,6 +349,7 @@ USER_AGENT_PARSERS = [
     DevPIUserAgent,
     Z3CPyPIMirrorUserAgent,
     ArtifactoryUserAgent,
+    NexusUserAgent,
 ]
 
 
