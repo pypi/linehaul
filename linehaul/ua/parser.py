@@ -152,21 +152,12 @@ def URLLib2UserAgent(*, python):
     return {"python": python}
 
 
+@regex_ua_parser(r"^python-requests/(?P<version>\S+)(?: .+)?$")
+def RequestsUserAgent(*, version):
+    return {"installer": {"name": "requests", "version": version}}
+
+
 class LegacyParser:
-    _requests_re = re.compile(r"^python-requests/(?P<version>\S+)(?: .+)?$")
-
-    @classmethod
-    def requests_format(cls, user_agent):
-        # Older versions of devpi used requests without modifying the user
-        # agent. However this could also just be someone using requests to
-        # download things from PyPI naturally. This means we can't count this
-        # as anything other than requests, but it might be something else.
-        m = cls._requests_re.search(user_agent)
-        if m is None:
-            return
-
-        return {"installer": {"name": "requests", "version": m.group("version")}}
-
     _os_re = re.compile(
         r"""
         (?:
@@ -334,6 +325,7 @@ USER_AGENT_PARSERS = [
     NexusUserAgent,
     PEP381ClientUserAgent,
     URLLib2UserAgent,
+    RequestsUserAgent,
 ]
 
 
