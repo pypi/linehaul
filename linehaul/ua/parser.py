@@ -192,34 +192,32 @@ def HomebrewUserAgent(*, version, osx_version):
     }
 
 
-class LegacyParser:
-    _os_re = re.compile(
-        r"""
-        (?:
-            ^fetch\ libfetch/\S+$ |
-            ^libfetch/\S+$ |
-            ^OpenBSD\ ftp$ |
-            ^MacPorts/? |
-            ^NetBSD-ftp/ |
-            ^slapt-get |
-            ^pypi-install/ |
-            ^slackrepo$ |
-            ^PTXdist |
-            ^GARstow/ |
-            ^xbps/
-        )
-        """,
-        re.VERBOSE,
+# TODO: It would be nice to maybe break more of these apart to try and get more insight
+#       into the OSs that people are installing packages into (similiar to Homebrew).
+@_parser.register
+@regex_ua_parser(re.compile(
+    r"""
+    (?:
+        ^fetch\ libfetch/\S+$ |
+        ^libfetch/\S+$ |
+        ^OpenBSD\ ftp$ |
+        ^MacPorts/? |
+        ^NetBSD-ftp/ |
+        ^slapt-get |
+        ^pypi-install/ |
+        ^slackrepo$ |
+        ^PTXdist |
+        ^GARstow/ |
+        ^xbps/
     )
+    """,
+    re.VERBOSE,
+))
+def OSUserAgent():
+    return {"installer": {"name": "OS"}}
 
-    @classmethod
-    def os_format(cls, user_agent):
-        m = cls._os_re.search(user_agent)
-        if m is None:
-            return
 
-        return {"installer": {"name": "OS"}}
-
+class LegacyParser:
     _browser_re = re.compile(
         r"""
             ^
@@ -296,7 +294,7 @@ class LegacyParser:
 
     @classmethod
     def parse(cls, user_agent):
-        formats = [cls.os_format, cls.browser_format]
+        formats = [cls.browser_format]
 
         for format in formats:
             try:
