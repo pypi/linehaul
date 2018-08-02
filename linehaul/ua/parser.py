@@ -14,14 +14,13 @@ import json
 import logging
 import re
 
-from typing import Optional
-
-import attr
-import attr.validators
 import cattr
 import packaging.version
 
 from packaging.specifiers import SpecifierSet
+
+from linehaul.ua.datastructures import UserAgent
+from linehaul.ua.impl import UnableToParse, ua_parser
 
 
 logger = logging.getLogger(__name__)
@@ -31,75 +30,26 @@ class UnknownUserAgentError(ValueError):
     pass
 
 
-@attr.s(slots=True, frozen=True)
-class Installer:
+@ua_parser
+def Pip6UserAgent(user_agent):
+    # We're only concerned about pip user agents.
+    if not user_agent.startswith("pip/"):
+        raise UnableToParse
 
-    name = attr.ib(type=Optional[str], default=None)
-    version = attr.ib(type=Optional[str], default=None)
+    # This format was brand new in pip 6.0, so we'll need to restrict it
+    # to only versions of pip newer than that.
+    version_str = user_agent.split()[0].split("/", 1)[1]
+    version = packaging.version.parse(version_str)
+    if version not in SpecifierSet(">=6", prereleases=True):
+        raise UnableToParse
 
-
-@attr.s(slots=True, frozen=True)
-class Implementation:
-
-    name = attr.ib(type=Optional[str], default=None)
-    version = attr.ib(type=Optional[str], default=None)
-
-
-@attr.s(slots=True, frozen=True)
-class LibC:
-
-    lib = attr.ib(type=Optional[str], default=None)
-    version = attr.ib(type=Optional[str], default=None)
-
-
-@attr.s(slots=True, frozen=True)
-class Distro:
-
-    name = attr.ib(type=Optional[str], default=None)
-    version = attr.ib(type=Optional[str], default=None)
-    id = attr.ib(type=Optional[str], default=None)
-    libc = attr.ib(type=Optional[LibC], default=None)
-
-
-@attr.s(slots=True, frozen=True)
-class System:
-
-    name = attr.ib(type=Optional[str], default=None)
-    release = attr.ib(type=Optional[str], default=None)
-
-
-@attr.s(slots=True, frozen=True)
-class UserAgent:
-
-    installer = attr.ib(type=Optional[Installer], default=None)
-    python = attr.ib(type=Optional[str], default=None)
-    implementation = attr.ib(type=Optional[Implementation], default=None)
-    distro = attr.ib(type=Optional[Distro], default=None)
-    system = attr.ib(type=Optional[System], default=None)
-    cpu = attr.ib(type=Optional[str], default=None)
-    openssl_version = attr.ib(type=Optional[str], default=None)
-    setuptools_version = attr.ib(type=Optional[str], default=None)
+    try:
+        return json.loads(user_agent.split(maxsplit=1)[1])
+    except json.JSONDecodeError:
+        return
 
 
 class Parser:
-    @staticmethod
-    def pip_6_format(user_agent):
-        # We're only concerned about pip user agents.
-        if not user_agent.startswith("pip/"):
-            return
-
-        # This format was brand new in pip 6.0, so we'll need to restrict it
-        # to only versions of pip newer than that.
-        version_str = user_agent.split()[0].split("/", 1)[1]
-        version = packaging.version.parse(version_str)
-        if version not in SpecifierSet(">=6", prereleases=True):
-            return
-
-        try:
-            return json.loads(user_agent.split(maxsplit=1)[1])
-        except json.JSONDecodeError:
-            return
-
     @staticmethod
     def pip_1_4_format(user_agent):
         # We're only concerned about pip user agents.
@@ -422,7 +372,6 @@ class Parser:
     @classmethod
     def parse(cls, user_agent):
         formats = [
-            cls.pip_6_format,
             cls.pip_1_4_format,
             cls.setuptools_format,
             cls.distribute_format,
@@ -460,4 +409,19 @@ class Parser:
         raise UnknownUserAgentError(user_agent)
 
 
-parse = Parser.parse
+USER_AGENT_PARSERS = [Pip6UserAgent]
+
+
+def parse(user_agent, *, _parsers=USER_AGENT_PARSERS):
+    for parser in _parsers:
+        if parser.test(user_agent):
+            try:
+                return cattr.structure(parser(user_agent), UserAgent)
+            except UnableToParse:
+                pass
+
+    # This handles user agents that we haven't ported over to the new mechanism for
+    # parsing yet.
+    # TODO: Port over all formats to the new system, and then raise
+    #       UnknownUserAgentError here instead of calling Parser.parse().
+    return Parser.parse(user_agent)
