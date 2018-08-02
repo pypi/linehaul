@@ -142,17 +142,12 @@ def NexusUserAgent(*, version):
     return {"installer": {"name": "Nexus", "version": version}}
 
 
+@regex_ua_parser(r"^pep381client(?:-proxy)?/(?P<version>\S+)$")
+def PEP381ClientUserAgent(*, version):
+    return {"installer": {"name": "pep381client", "version": version}}
+
+
 class LegacyParser:
-    _pep381client_re = re.compile(r"^pep381client(?:-proxy)?/(?P<version>\S+)$")
-
-    @classmethod
-    def pep381client_format(cls, user_agent):
-        m = cls._pep381client_re.search(user_agent)
-        if m is None:
-            return
-
-        return {"installer": {"name": "pep381client", "version": m.group("version")}}
-
     @staticmethod
     def urllib2_format(user_agent):
         # This isn't really a format exactly, prior to pip 1.4 pip used urllib2
@@ -309,7 +304,6 @@ class LegacyParser:
     @classmethod
     def parse(cls, user_agent):
         formats = [
-            cls.pep381client_format,
             cls.urllib2_format,
             cls.requests_format,
             cls.homebrew_format,
@@ -350,6 +344,7 @@ USER_AGENT_PARSERS = [
     Z3CPyPIMirrorUserAgent,
     ArtifactoryUserAgent,
     NexusUserAgent,
+    PEP381ClientUserAgent,
 ]
 
 
