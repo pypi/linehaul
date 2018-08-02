@@ -28,7 +28,7 @@ from ...strategies import version as st_version
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 
 
-def load_ua_fixtures(fixture_dir):
+def _load_ua_fixtures(fixture_dir):
     fixtures = os.listdir(fixture_dir)
     for filename in fixtures:
         with open(os.path.join(fixture_dir, filename), "r") as fp:
@@ -45,7 +45,7 @@ def load_ua_fixtures(fixture_dir):
             yield ua, expected
 
 
-@pytest.mark.parametrize(("ua", "expected"), load_ua_fixtures(FIXTURE_DIR))
+@pytest.mark.parametrize(("ua", "expected"), _load_ua_fixtures(FIXTURE_DIR))
 def test_user_agent_parsing(ua, expected):
     assert parser.parse(ua) == expected
 
