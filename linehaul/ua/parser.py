@@ -46,7 +46,7 @@ def Pip6UserAgent(user_agent):
     try:
         return json.loads(user_agent.split(maxsplit=1)[1])
     except json.JSONDecodeError:
-        return
+        raise UnableToParse from None
 
 
 @ua_parser
