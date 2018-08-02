@@ -91,28 +91,15 @@ def DistributeUserAgent(*, python, version):
     return {"installer": {"name": "distribute", "version": version}, "python": python}
 
 
+@regex_ua_parser(
+    r"^Python-urllib/(?P<python>\d\.\d) setuptools/(?P<version>\S+)$",
+    r"^setuptools/(?P<version>\S+) Python-urllib/(?P<python>\d\.\d)$",
+)
+def SetuptoolsUserAgent(*, python, version):
+    return {"installer": {"name": "setuptools", "version": version}, "python": python}
+
+
 class Parser:
-    _setuptools_re = re.compile(
-        r"^Python-urllib/(?P<python>\d\.\d) setuptools/(?P<version>\S+)$"
-    )
-
-    _setuptools_new_re = re.compile(
-        r"^setuptools/(?P<version>\S+) Python-urllib/(?P<python>\d\.\d)$"
-    )
-
-    @classmethod
-    def setuptools_format(cls, user_agent):
-        m = cls._setuptools_re.search(user_agent)
-        if m is None:
-            m = cls._setuptools_new_re.search(user_agent)
-            if m is None:
-                return
-
-        return {
-            "installer": {"name": "setuptools", "version": m.group("version")},
-            "python": m.group("python"),
-        }
-
     _pex_re = re.compile(r"pex/(?P<version>\S+)$")
 
     @classmethod
@@ -363,7 +350,6 @@ class Parser:
     @classmethod
     def parse(cls, user_agent):
         formats = [
-            cls.setuptools_format,
             cls.pex_format,
             cls.conda_format,
             cls.bazel_format,
@@ -400,7 +386,12 @@ class Parser:
 
 # TODO: We should arrange these in order of most common to least common, because the
 #       earlier we find a match, the quicker we can finish parsing this user agent.
-USER_AGENT_PARSERS = [Pip6UserAgent, Pip1_4UserAgent, DistributeUserAgent]
+USER_AGENT_PARSERS = [
+    Pip6UserAgent,
+    Pip1_4UserAgent,
+    DistributeUserAgent,
+    SetuptoolsUserAgent,
+]
 
 
 def parse(user_agent, *, _parsers=USER_AGENT_PARSERS):
