@@ -20,7 +20,7 @@ import packaging.version
 from packaging.specifiers import SpecifierSet
 
 from linehaul.ua.datastructures import UserAgent
-from linehaul.ua.impl import UnableToParse, ua_parser
+from linehaul.ua.impl import UnableToParse, ua_parser, regex_ua_parser
 
 
 logger = logging.getLogger(__name__)
@@ -86,22 +86,12 @@ def Pip1_4UserAgent(user_agent):
     return data
 
 
+@regex_ua_parser(r"^Python-urllib/(?P<python>\d\.\d) distribute/(?P<version>\S+)$")
+def DistributeUserAgent(*, python, version):
+    return {"installer": {"name": "distribute", "version": version}, "python": python}
+
+
 class Parser:
-    _distribute_re = re.compile(
-        r"^Python-urllib/(?P<python>\d\.\d) distribute/(?P<version>\S+)$"
-    )
-
-    @classmethod
-    def distribute_format(cls, user_agent):
-        m = cls._distribute_re.search(user_agent)
-        if m is None:
-            return
-
-        return {
-            "installer": {"name": "distribute", "version": m.group("version")},
-            "python": m.group("python"),
-        }
-
     _setuptools_re = re.compile(
         r"^Python-urllib/(?P<python>\d\.\d) setuptools/(?P<version>\S+)$"
     )
@@ -374,7 +364,6 @@ class Parser:
     def parse(cls, user_agent):
         formats = [
             cls.setuptools_format,
-            cls.distribute_format,
             cls.pex_format,
             cls.conda_format,
             cls.bazel_format,
@@ -409,7 +398,9 @@ class Parser:
         raise UnknownUserAgentError(user_agent)
 
 
-USER_AGENT_PARSERS = [Pip6UserAgent, Pip1_4UserAgent]
+# TODO: We should arrange these in order of most common to least common, because the
+#       earlier we find a match, the quicker we can finish parsing this user agent.
+USER_AGENT_PARSERS = [Pip6UserAgent, Pip1_4UserAgent, DistributeUserAgent]
 
 
 def parse(user_agent, *, _parsers=USER_AGENT_PARSERS):

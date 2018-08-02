@@ -11,6 +11,7 @@
 # limitations under the License.
 
 import abc
+import re
 
 
 class UnableToParse(Exception):
@@ -57,3 +58,43 @@ class CallbackUserAgentParser(UserAgentParser):
 
 def ua_parser(fn):
     return CallbackUserAgentParser(fn)
+
+
+class RegexUserAgentParser(UserAgentParser):
+    def __init__(self, regex, handler):
+        self._regex = re.compile(regex) if isinstance(regex, str) else regex
+        self._handler = handler
+
+    def test(self, user_agent):
+        return not self._regex.search(user_agent) is None
+
+    def __call__(self, user_agent):
+        matched = self._regex.search(user_agent)
+        # We shouldn't actually be able to ever get here unless the caller did not
+        # test this parser before attempting to use it. However, we'll guard against
+        # it anyways just to be safe.
+        if matched is None:
+            raise UnableToParse
+
+        # We need to build up the args, and kwargs of our function, we call any unnamed
+        # group an arg, and pass them in, in order, and we call any named group a kwarg
+        # and we pass them in by name.
+        group_to_name = {v: k for k, v in matched.re.groupindex.items()}
+        args, kwargs = [], {}
+        for i, value in enumerate(matched.groups(), start=1):
+            name = group_to_name.get(i)
+            if name is not None:
+                kwargs[name] = value
+            else:
+                args.append(value)
+
+        # Finally, we'll call our handler with our parsed arguments, and return whatever
+        # result it gives us.
+        return self._handler(*args, **kwargs)
+
+
+def regex_ua_parser(regex):
+    def deco(fn):
+        return RegexUserAgentParser(regex, fn)
+
+    return deco
