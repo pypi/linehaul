@@ -158,3 +158,11 @@ class TestPip1_4UserAgent:
             expected["python"] = impl_version
 
         assert parser.Pip1_4UserAgent(ua) == expected
+
+
+class TestParse:
+
+    @given(st.text())
+    def test_unknown_user_agent(self, user_agent):
+        with pytest.raises(parser.UnknownUserAgentError):
+            parser.parse(user_agent)
