@@ -61,19 +61,27 @@ def ua_parser(fn):
 
 
 class RegexUserAgentParser(UserAgentParser):
-    def __init__(self, regex, handler):
-        self._regex = re.compile(regex) if isinstance(regex, str) else regex
+    def __init__(self, regexes, handler):
+        self._regexes = [
+            re.compile(regex) if isinstance(regex, str) else regex for regex in regexes
+        ]
         self._handler = handler
 
     def test(self, user_agent):
-        return not self._regex.search(user_agent) is None
+        return any(regex.search(user_agent) is not None for regex in self._regexes)
 
     def __call__(self, user_agent):
-        matched = self._regex.search(user_agent)
-        # We shouldn't actually be able to ever get here unless the caller did not
-        # test this parser before attempting to use it. However, we'll guard against
-        # it anyways just to be safe.
-        if matched is None:
+        for regex in self._regexes:
+            matched = regex.search(user_agent)
+
+            # If we've matched this particuar regex, then we'll break the loop here and
+            # go onto finishing parsing.
+            if matched is not None:
+                break
+        else:
+            # We shouldn't actually be able to ever get here unless the caller did not
+            # test this parser before attempting to use it. However, we'll guard against
+            # it anyways just to be safe.
             raise UnableToParse
 
         # We need to build up the args, and kwargs of our function, we call any unnamed
@@ -93,8 +101,8 @@ class RegexUserAgentParser(UserAgentParser):
         return self._handler(*args, **kwargs)
 
 
-def regex_ua_parser(regex):
+def regex_ua_parser(*regexes):
     def deco(fn):
-        return RegexUserAgentParser(regex, fn)
+        return RegexUserAgentParser(regexes, fn)
 
     return deco
