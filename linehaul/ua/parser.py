@@ -127,17 +127,12 @@ def DevPIUserAgent(*, version):
     return {"installer": {"name": "devpi", "version": version}}
 
 
+@regex_ua_parser(r"^z3c\.pypimirror/(?P<version>\S+)$")
+def Z3CPyPIMirrorUserAgent(*, version):
+    return {"installer": {"name": "z3c.pypimirror", "version": version}}
+
+
 class LegacyParser:
-    _z3c_pypimirror_re = re.compile(r"^z3c\.pypimirror/(?P<version>\S+)$")
-
-    @classmethod
-    def z3c_pypimirror_format(cls, user_agent):
-        m = cls._z3c_pypimirror_re.search(user_agent)
-        if m is None:
-            return
-
-        return {"installer": {"name": "z3c.pypimirror", "version": m.group("version")}}
-
     _artifactory_re = re.compile(r"^Artifactory/(?P<version>\S+)$")
 
     @classmethod
@@ -324,7 +319,6 @@ class LegacyParser:
     @classmethod
     def parse(cls, user_agent):
         formats = [
-            cls.z3c_pypimirror_format,
             cls.artifactory_format,
             cls.nexus_format,
             cls.pep381client_format,
@@ -365,6 +359,7 @@ USER_AGENT_PARSERS = [
     BazelUserAgent,
     BandersnatchUserAgent,
     DevPIUserAgent,
+    Z3CPyPIMirrorUserAgent,
 ]
 
 
