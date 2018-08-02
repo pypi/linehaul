@@ -35,18 +35,6 @@ class UserAgentParser(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def test(self, ua):
-        """
-        Tests if this parser is able to parse the intended user agent, or if it should
-        be skipped and another parser should be used instead. Returns either a ``True``
-        or ``False`` to indicate whether it can parse the UA or not.
-
-        It is valid for this method to return ``True`` even in cases that it cannot be
-        parsed as the system is able to handle false positives, however if it returns
-        ``False`` then no further parsing will be attempted by this class.
-        """
-
-    @abc.abstractmethod
     def __call__(self, ua):
         """
         Actually parses the user agent, returning a dictionary containing all of the
@@ -67,13 +55,6 @@ class CallbackUserAgentParser(UserAgentParser):
     @property
     def name(self):
         return self._name
-
-    def test(self, ua):
-        # Our callback format doesn't give us the ability to determine ahead of time if
-        # we can parse the user agent, so we'll just always return True, and the
-        # callback will be responsible for handling raising UnableToParse when it can't
-        # parse the given user agent.
-        return True
 
     def __call__(self, ua):
         return self._callback(ua)
@@ -98,9 +79,6 @@ class RegexUserAgentParser(UserAgentParser):
     def name(self):
         return self._name
 
-    def test(self, user_agent):
-        return any(regex.search(user_agent) is not None for regex in self._regexes)
-
     def __call__(self, user_agent):
         for regex in self._regexes:
             matched = regex.search(user_agent)
@@ -110,9 +88,7 @@ class RegexUserAgentParser(UserAgentParser):
             if matched is not None:
                 break
         else:
-            # We shouldn't actually be able to ever get here unless the caller did not
-            # test this parser before attempting to use it. However, we'll guard against
-            # it anyways just to be safe.
+            # None of our regexes matched.
             raise UnableToParse
 
         # We need to build up the args, and kwargs of our function, we call any unnamed
@@ -149,19 +125,15 @@ class ParserSet:
 
     def __call__(self, user_agent):
         for parser in self._parsers:
-            if parser.test(user_agent):
-                try:
-                    parsed = parser(user_agent)
-                except UnableToParse:
-                    pass
-                except Exception:
-                    logger.error(
-                        "Error parsing %r as a %s",
-                        user_agent,
-                        parser.name,
-                        exc_info=True,
-                    )
-                else:
-                    return cattr.structure(parsed, UserAgent)
+            try:
+                parsed = parser(user_agent)
+            except UnableToParse:
+                pass
+            except Exception:
+                logger.error(
+                    "Error parsing %r as a %s", user_agent, parser.name, exc_info=True
+                )
+            else:
+                return cattr.structure(parsed, UserAgent)
 
         raise UnableToParse
