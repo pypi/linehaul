@@ -11,7 +11,9 @@
 # limitations under the License.
 
 import abc
+import collections
 import logging
+import random
 import re
 
 
@@ -113,16 +115,59 @@ def regex_ua_parser(*regexes):
 
 class ParserSet:
     def __init__(self):
-        self._parsers = set()
+        self._parsers = []
 
-    def register(self, parser):
-        self._parsers.add(parser)
+        self._optimize_every = 1000000
+        # Set the first optimize in to a reduced amount to get some basic optimization
+        # done early.
+        self._optimize_in = self._optimize_every * 0.25
+        self._counts = collections.Counter()
+
+    def register(self, parser, *, _randomize=True):
+        self._parsers.append(parser)
+
+        # The use of random.shuffle here is a bit quirkly, it doesn't actually help us
+        # at runtime in any way. What it *does* do, is make it more likely that any
+        # ordering dependence in registered parsers shows up as test failures instead
+        # of being hard to find bugs in production.
+        # This does make registering a parser more heavy-weight than recorded (through
+        # minorly so), but this shouldn't matter since in our usage registerin is only
+        # done at the module level anyways.
+        if _randomize:
+            random.shuffle(self._parsers)
+
         return parser
 
+    def _optimize(self):
+        # We're going to sort our list in place, using the value of how many times
+        # a parser function has been used as the parser for a user agent to put the
+        # most commonly used parsed first.
+        self._parsers.sort(key=lambda p: self._counts[p], reverse=True)
+
+        # Reduce our recorded counts just to keep the size of our counts in checks.
+        # This will also implicitly act as a decay so that historical data is less
+        # relevant than new data.
+        self._counts.subtract({k: int(v * 0.5) for k, v in self._counts.items()})
+
+        # Reset our marker
+        self._optimize_in = self._optimize_every
+
     def __call__(self, user_agent):
+        # Decrement our counter for how long until we will implicitly call optimize
+        # on our ParserSet, and check to see if it's time to optimize or not.
+        self._optimize_in -= 1
+        if self._optimize_in <= 0:
+            self._optimize()
+
+        # Actually go through our registered parsers and try to use them to parse.
         for parser in self._parsers:
             try:
-                return parser(user_agent)
+                parsed = parser(user_agent)
+
+                # Record a "hit" for this parser.
+                self._counts[parser] += 1
+
+                return parsed
             except UnableToParse:
                 pass
             except Exception:
