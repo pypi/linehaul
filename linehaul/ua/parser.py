@@ -147,23 +147,12 @@ def PEP381ClientUserAgent(*, version):
     return {"installer": {"name": "pep381client", "version": version}}
 
 
+@regex_ua_parser(r"^Python-urllib/(?P<python>\d\.\d)$")
+def URLLib2UserAgent(*, python):
+    return {"python": python}
+
+
 class LegacyParser:
-    @staticmethod
-    def urllib2_format(user_agent):
-        # This isn't really a format exactly, prior to pip 1.4 pip used urllib2
-        # and it didn't bother to change the default user agent. This means
-        # we'll miscount this version as higher than it actually is, however
-        # I'm not sure there is any better way around that.
-        if not user_agent.startswith("Python-urllib/"):
-            return
-
-        # Some projects (like setuptools) add an additional item to the end of
-        # the urllib string. We want to make sure this is _only_ Python-urllib
-        if len(user_agent.split()) > 1:
-            return
-
-        return {"python": user_agent.split("/", 1)[1]}
-
     _requests_re = re.compile(r"^python-requests/(?P<version>\S+)(?: .+)?$")
 
     @classmethod
@@ -304,7 +293,6 @@ class LegacyParser:
     @classmethod
     def parse(cls, user_agent):
         formats = [
-            cls.urllib2_format,
             cls.requests_format,
             cls.homebrew_format,
             cls.os_format,
@@ -345,6 +333,7 @@ USER_AGENT_PARSERS = [
     ArtifactoryUserAgent,
     NexusUserAgent,
     PEP381ClientUserAgent,
+    URLLib2UserAgent,
 ]
 
 
