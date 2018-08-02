@@ -117,17 +117,12 @@ def BazelUserAgent(*, version):
     return {"installer": {"name": "Bazel", "version": version}}
 
 
+@regex_ua_parser(r"^bandersnatch/(?P<version>\S+) \(.+\)$")
+def BandersnatchUserAgent(*, version):
+    return {"installer": {"name": "bandersnatch", "version": version}}
+
+
 class Parser:
-    _bandersnatch_re = re.compile(r"^bandersnatch/(?P<version>\S+) \(.+\)$")
-
-    @classmethod
-    def bandersnatch_format(cls, user_agent):
-        m = cls._bandersnatch_re.search(user_agent)
-        if m is None:
-            return
-
-        return {"installer": {"name": "bandersnatch", "version": m.group("version")}}
-
     _devpi_re = re.compile(r"devpi-server/(?P<version>\S+) \(.+\)$")
 
     @classmethod
@@ -334,7 +329,6 @@ class Parser:
     @classmethod
     def parse(cls, user_agent):
         formats = [
-            cls.bandersnatch_format,
             cls.z3c_pypimirror_format,
             cls.devpi_format,
             cls.artifactory_format,
@@ -375,6 +369,7 @@ USER_AGENT_PARSERS = [
     PexUserAgent,
     CondaUserAgent,
     BazelUserAgent,
+    BandersnatchUserAgent,
 ]
 
 
