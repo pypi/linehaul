@@ -14,12 +14,10 @@ import json
 import logging
 import re
 
-import cattr
 import packaging.version
 
 from packaging.specifiers import SpecifierSet
 
-from linehaul.ua.datastructures import UserAgent
 from linehaul.ua.impl import ParserSet, UnableToParse, ua_parser, regex_ua_parser
 
 
@@ -205,8 +203,9 @@ def HomebrewUserAgent(*, version, osx_version):
 # TODO: It would be nice to maybe break more of these apart to try and get more insight
 #       into the OSs that people are installing packages into (similiar to Homebrew).
 @_parser.register
-@regex_ua_parser(re.compile(
-    r"""
+@regex_ua_parser(
+    re.compile(
+        r"""
     (?:
         ^fetch\ libfetch/\S+$ |
         ^libfetch/\S+$ |
@@ -221,15 +220,17 @@ def HomebrewUserAgent(*, version, osx_version):
         ^xbps/
     )
     """,
-    re.VERBOSE,
-))
+        re.VERBOSE,
+    )
+)
 def OSUserAgent():
     return {"installer": {"name": "OS"}}
 
 
 @_parser.register
-@regex_ua_parser(re.compile(
-    r"""
+@regex_ua_parser(
+    re.compile(
+        r"""
         ^
         (?:
             Mozilla |
@@ -250,67 +251,68 @@ def OSUserAgent():
         )
         (?:/|$)
     """,
-    re.IGNORECASE | re.VERBOSE,
-))
+        re.IGNORECASE | re.VERBOSE,
+    )
+)
 def BrowserUserAgent():
     return {"installer": {"name": "Browser"}}
 
 
-class LegacyParser:
-    _ignore_re = re.compile(
-        r"""
-        (?:
-            ^Datadog\ Agent/ |
-            ^\(null\)$ |
-            ^WordPress/ |
-            ^Chef\ (?:Client|Knife)/ |
-            ^Ruby$ |
-            ^Slackbot-LinkExpanding |
-            ^TextualInlineMedia/ |
-            ^WeeChat/ |
-            ^Download\ Master$ |
-            ^Java/ |
-            ^Go\ \d\.\d\ package\ http$ |
-            ^Go-http-client/ |
-            ^GNU\ Guile$ |
-            ^github-olee$ |
-            ^YisouSpider$ |
-            ^Apache\ Ant/ |
-            ^Salt/ |
-            ^ansible-httpget$ |
-            ^ltx71\ -\ \(http://ltx71.com/\) |
-            ^Scrapy/ |
-            ^spectool/ |
-            Nutch |
-            ^AWSBrewLinkChecker/ |
-            ^Y!J-ASR/ |
-            ^NSIS_Inetc\ \(Mozilla\)$ |
-            ^Debian\ uscan |
-            ^Pingdom\.com_bot_version_\d+\.\d+_\(https?://www.pingdom.com/\)$ |
-            ^MauiBot\ \(crawler\.feedback\+dc@gmail\.com\)$
-        )
-        """,
-        re.VERBOSE,
+# TODO: It would be kind of nice to implement this as just another parser, that returns
+#       None instead of a dictionary. However given that there is no inherent ordering
+#       in a ParserSet, and we want this to always go last (just incase an ignore
+#       pattern is overlly broad) we can't do that. It would be nice to make it possible
+#       to register a parser with an explicit location in the parser set.
+_ignore_re = re.compile(
+    r"""
+    (?:
+        ^Datadog\ Agent/ |
+        ^\(null\)$ |
+        ^WordPress/ |
+        ^Chef\ (?:Client|Knife)/ |
+        ^Ruby$ |
+        ^Slackbot-LinkExpanding |
+        ^TextualInlineMedia/ |
+        ^WeeChat/ |
+        ^Download\ Master$ |
+        ^Java/ |
+        ^Go\ \d\.\d\ package\ http$ |
+        ^Go-http-client/ |
+        ^GNU\ Guile$ |
+        ^github-olee$ |
+        ^YisouSpider$ |
+        ^Apache\ Ant/ |
+        ^Salt/ |
+        ^ansible-httpget$ |
+        ^ltx71\ -\ \(http://ltx71.com/\) |
+        ^Scrapy/ |
+        ^spectool/ |
+        Nutch |
+        ^AWSBrewLinkChecker/ |
+        ^Y!J-ASR/ |
+        ^NSIS_Inetc\ \(Mozilla\)$ |
+        ^Debian\ uscan |
+        ^Pingdom\.com_bot_version_\d+\.\d+_\(https?://www.pingdom.com/\)$ |
+        ^MauiBot\ \(crawler\.feedback\+dc@gmail\.com\)$
     )
-
-    @classmethod
-    def ignored(cls, user_agent):
-        m = cls._ignore_re.search(user_agent)
-        return m is not None
-
-    @classmethod
-    def parse(cls, user_agent):
-        if cls.ignored(user_agent):
-            return
-
-        raise UnknownUserAgentError(user_agent)
+    """,
+    re.VERBOSE,
+)
 
 
 def parse(user_agent):
     try:
         return _parser(user_agent)
     except UnableToParse:
-        # TODO: This should actually by an UnknownUserAgentError, however until we have
-        #       ported over all of the formats to the new parser, this will instead just
-        #       fall through to the LegacyParser.
-        return LegacyParser.parse(user_agent)
+        # If we were not able to parse the user agent, then we have two options, we can
+        # either raise an `UnknownUserAgentError` or we can return None to explicitly
+        # say that we opted not to parse this user agent. To determine which option we
+        # pick we'll match against a regex of UAs to ignore, if we match then we'll
+        # return a None to indicate to our caller that we couldn't parse this UA, but
+        # that it was an expected inability to parse. Otherwise we'll raise an
+        # `UnknownUserAgentError` to indicate that it as an unexpected inability to
+        # parse.
+        if _ignore_re.search(user_agent) is not None:
+            return None
+
+        raise UnknownUserAgentError from None

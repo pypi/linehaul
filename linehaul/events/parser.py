@@ -25,7 +25,7 @@ from pyparsing import Literal as L, Word, Optional as OptionalItem
 from pyparsing import printables as _printables, restOfLine
 from pyparsing import ParseException
 
-from linehaul.ua import parser as user_agents
+from linehaul.ua import UserAgent, parser as user_agents
 
 
 logger = logging.getLogger(__name__)
@@ -152,7 +152,7 @@ class Download:
     tls_protocol = attr.ib(type=Optional[str], default=None)
     tls_cipher = attr.ib(type=Optional[str], default=None)
     country_code = attr.ib(type=Optional[str], default=None)
-    details = attr.ib(type=Optional[user_agents.UserAgent], default=None)
+    details = attr.ib(type=Optional[UserAgent], default=None)
 
 
 def _value_or_none(value):

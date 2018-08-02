@@ -16,7 +16,8 @@ import cattr
 import pytest
 import yaml
 
-from linehaul.ua.parser import UserAgent, parse
+from linehaul.ua.datastructures import UserAgent
+from linehaul.ua.parser import parse
 
 
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
@@ -29,7 +30,12 @@ def load_ua_fixtures(fixture_dir):
             fixtures = yaml.safe_load(fp.read())
         for fixture in fixtures:
             ua = fixture.pop("ua")
-            expected = cattr.structure(fixture.pop("result"), UserAgent)
+            result = fixture.pop("result")
+            expected = (
+                cattr.structure(result, UserAgent)
+                if isinstance(result, dict)
+                else result
+            )
             assert fixture == {}
             yield ua, expected
 
