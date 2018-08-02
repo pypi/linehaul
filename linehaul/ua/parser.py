@@ -166,12 +166,22 @@ def PEP381ClientUserAgent(*, version):
     return {"installer": {"name": "pep381client", "version": version}}
 
 
+# TODO: We should probably consider not parsing this specially, and moving it to
+#       just the same as we treat browsers, since we don't really know anything
+#       about it-- including whether or not the version of Python mentioned is
+#       the one they're going to install it into or not. The one real sticking
+#       point is that before pip 1.4, pip just used the default urllib2 UA, so
+#       right now we're counting pip 1.4 in here... but pip 1.4 usage is probably
+#       low enough not to worry about that any more.
 @_parser.register
 @regex_ua_parser(r"^Python-urllib/(?P<python>\d\.\d)$")
 def URLLib2UserAgent(*, python):
     return {"python": python}
 
 
+# TODO: We should probably consider not parsing this specially, and moving it to
+#       just the same as we treat browsers, since we don't really know anything
+#       about it and the version of requests isn't very useful in general.
 @_parser.register
 @regex_ua_parser(r"^python-requests/(?P<version>\S+)(?: .+)?$")
 def RequestsUserAgent(*, version):
@@ -217,40 +227,36 @@ def OSUserAgent():
     return {"installer": {"name": "OS"}}
 
 
+@_parser.register
+@regex_ua_parser(re.compile(
+    r"""
+        ^
+        (?:
+            Mozilla |
+            Safari |
+            wget |
+            curl |
+            Opera |
+            aria2 |
+            AndroidDownloadManager |
+            com\.apple\.WebKit\.Networking/ |
+            FDM\ \S+ |
+            URL/Emacs |
+            Firefox/ |
+            UCWEB |
+            Links |
+            ^okhttp |
+            ^Apache-HttpClient
+        )
+        (?:/|$)
+    """,
+    re.IGNORECASE | re.VERBOSE,
+))
+def BrowserUserAgent():
+    return {"installer": {"name": "Browser"}}
+
+
 class LegacyParser:
-    _browser_re = re.compile(
-        r"""
-            ^
-            (?:
-                Mozilla |
-                Safari |
-                wget |
-                curl |
-                Opera |
-                aria2 |
-                AndroidDownloadManager |
-                com\.apple\.WebKit\.Networking/ |
-                FDM\ \S+ |
-                URL/Emacs |
-                Firefox/ |
-                UCWEB |
-                Links |
-                ^okhttp |
-                ^Apache-HttpClient
-            )
-            (?:/|$)
-        """,
-        re.IGNORECASE | re.VERBOSE,
-    )
-
-    @classmethod
-    def browser_format(cls, user_agent):
-        m = cls._browser_re.search(user_agent)
-        if m is None:
-            return
-
-        return {"installer": {"name": "Browser"}}
-
     _ignore_re = re.compile(
         r"""
         (?:
@@ -294,20 +300,6 @@ class LegacyParser:
 
     @classmethod
     def parse(cls, user_agent):
-        formats = [cls.browser_format]
-
-        for format in formats:
-            try:
-                data = format(user_agent)
-            except Exception as exc:
-                logger.warning(
-                    "Error parsing %r as %s", user_agent, format.__name__, exc_info=True
-                )
-                data = None
-
-            if data is not None:
-                return cattr.structure(data, UserAgent)
-
         if cls.ignored(user_agent):
             return
 
