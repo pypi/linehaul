@@ -122,7 +122,7 @@ def BandersnatchUserAgent(*, version):
     return {"installer": {"name": "bandersnatch", "version": version}}
 
 
-class Parser:
+class LegacyParser:
     _devpi_re = re.compile(r"devpi-server/(?P<version>\S+) \(.+\)$")
 
     @classmethod
@@ -385,4 +385,4 @@ def parse(user_agent, *, _parsers=USER_AGENT_PARSERS):
     # parsing yet.
     # TODO: Port over all formats to the new system, and then raise
     #       UnknownUserAgentError here instead of calling Parser.parse().
-    return Parser.parse(user_agent)
+    return LegacyParser.parse(user_agent)
