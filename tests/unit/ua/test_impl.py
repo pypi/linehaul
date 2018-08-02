@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import itertools
 import logging
 import re
 
@@ -185,3 +186,57 @@ class TestParserSet:
                 "Error parsing 'anything' as a OhNoName.",
             )
         ]
+
+    def test_optimizing(self):
+        parser = impl.ParserSet()
+
+        # Override some values to make it easier to test.
+        parser._optimize_every = 100
+        parser._optimize_in = 100
+
+        def parser1(inp):
+            if inp != "one":
+                raise impl.UnableToParse
+
+        def parser2(inp):
+            if inp != "two" and inp != "three":
+                raise impl.UnableToParse
+
+        def parser3(inp):
+            if inp != "four":
+                raise impl.UnableToParse
+
+        # We explicitly register these with the private, randomize kwarg set to
+        # False, that will ensure that our default order is the ordered we registered
+        # these in, which will make this test easier to write.
+        parser.register(parser1, _randomize=False)
+        parser.register(parser2, _randomize=False)
+        parser.register(parser3, _randomize=False)
+
+        # Check our start state makes sense.
+        assert parser._parsers == [parser1, parser2, parser3]
+
+        # Run through our parser with some input, watching the state of our optimize
+        # markers as we go along.
+        for i, value in enumerate(itertools.cycle(["one", "two", "three", "four"])):
+            assert parser._optimize_in == parser._optimize_every - i
+            parser(value)
+            assert parser._optimize_in == parser._optimize_every - i - 1
+            assert parser._parsers == [parser1, parser2, parser3]
+
+            # Break out of our loop right before the optimize method would be called.
+            if i + 1 >= 99:
+                break
+
+        # We should know the exact state of our counters at this point.
+        assert parser._counts == {parser1: 25, parser2: 50, parser3: 24}
+
+        # Call our parser one more time, we explictly call it with "one" here, because
+        # that should ensure that the first parser has been called at least once more
+        # than the third person, and the second parser should have been called almost
+        # twice as many times as either.
+        parser("one")
+
+        assert parser._optimize_in == 100
+        assert parser._parsers == [parser2, parser1, parser3]
+        assert parser._counts == {parser1: 14, parser2: 25, parser3: 12}
