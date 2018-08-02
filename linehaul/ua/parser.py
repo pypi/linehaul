@@ -132,17 +132,12 @@ def Z3CPyPIMirrorUserAgent(*, version):
     return {"installer": {"name": "z3c.pypimirror", "version": version}}
 
 
+@regex_ua_parser(r"^Artifactory/(?P<version>\S+)$")
+def ArtifactoryUserAgent(*, version):
+    return {"installer": {"name": "Artifactory", "version": version}}
+
+
 class LegacyParser:
-    _artifactory_re = re.compile(r"^Artifactory/(?P<version>\S+)$")
-
-    @classmethod
-    def artifactory_format(cls, user_agent):
-        m = cls._artifactory_re.search(user_agent)
-        if m is None:
-            return
-
-        return {"installer": {"name": "Artifactory", "version": m.group("version")}}
-
     _nexus_re = re.compile(r"^Nexus/(?P<version>\S+)")
 
     @classmethod
@@ -319,7 +314,6 @@ class LegacyParser:
     @classmethod
     def parse(cls, user_agent):
         formats = [
-            cls.artifactory_format,
             cls.nexus_format,
             cls.pep381client_format,
             cls.urllib2_format,
@@ -360,6 +354,7 @@ USER_AGENT_PARSERS = [
     BandersnatchUserAgent,
     DevPIUserAgent,
     Z3CPyPIMirrorUserAgent,
+    ArtifactoryUserAgent,
 ]
 
 
