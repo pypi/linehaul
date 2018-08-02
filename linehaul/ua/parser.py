@@ -49,43 +49,44 @@ def Pip6UserAgent(user_agent):
         return
 
 
+@ua_parser
+def Pip1_4UserAgent(user_agent):
+    # We're only concerned about pip user agents.
+    if not user_agent.startswith("pip/"):
+        raise UnableToParse
+
+    # This format was brand new in pip 1.4, and went away in pip 6.0, so
+    # we'll need to restrict it to only versions of pip between 1.4 and 6.0
+    version_str = user_agent.split()[0].split("/", 1)[1]
+    version = packaging.version.parse(version_str)
+    if version not in SpecifierSet(">=1.4,<6", prereleases=True):
+        raise UnableToParse
+
+    _, impl, system = user_agent.split(maxsplit=2)
+
+    data = {
+        "installer": {"name": "pip", "version": version_str},
+        "implementation": {"name": impl.split("/", 1)[0]},
+    }
+
+    if not impl.endswith("/Unknown"):
+        data["implementation"]["version"] = impl.split("/", 1)[1]
+
+    if not system.startswith("Unknown/"):
+        data.setdefault("system", {})["name"] = system.split("/", 1)[0]
+
+    if not system.endswith("/Unknown"):
+        data.setdefault("system", {})["release"] = system.split("/", 1)[1]
+
+    if data["implementation"]["name"].lower() == "cpython" and data[
+        "implementation"
+    ].get("version"):
+        data["python"] = data["implementation"]["version"]
+
+    return data
+
+
 class Parser:
-    @staticmethod
-    def pip_1_4_format(user_agent):
-        # We're only concerned about pip user agents.
-        if not user_agent.startswith("pip/"):
-            return
-
-        # This format was brand new in pip 1.4, and went away in pip 6.0, so
-        # we'll need to restrict it to only versions of pip between 1.4 and 6.0
-        version_str = user_agent.split()[0].split("/", 1)[1]
-        version = packaging.version.parse(version_str)
-        if version not in SpecifierSet(">=1.4,<6", prereleases=True):
-            return
-
-        _, impl, system = user_agent.split(maxsplit=2)
-
-        data = {
-            "installer": {"name": "pip", "version": version_str},
-            "implementation": {"name": impl.split("/", 1)[0]},
-        }
-
-        if not impl.endswith("/Unknown"):
-            data["implementation"]["version"] = impl.split("/", 1)[1]
-
-        if not system.startswith("Unknown/"):
-            data.setdefault("system", {})["name"] = system.split("/", 1)[0]
-
-        if not system.endswith("/Unknown"):
-            data.setdefault("system", {})["release"] = system.split("/", 1)[1]
-
-        if data["implementation"]["name"].lower() == "cpython" and data[
-            "implementation"
-        ].get("version"):
-            data["python"] = data["implementation"]["version"]
-
-        return data
-
     _distribute_re = re.compile(
         r"^Python-urllib/(?P<python>\d\.\d) distribute/(?P<version>\S+)$"
     )
@@ -372,7 +373,6 @@ class Parser:
     @classmethod
     def parse(cls, user_agent):
         formats = [
-            cls.pip_1_4_format,
             cls.setuptools_format,
             cls.distribute_format,
             cls.pex_format,
@@ -409,7 +409,7 @@ class Parser:
         raise UnknownUserAgentError(user_agent)
 
 
-USER_AGENT_PARSERS = [Pip6UserAgent]
+USER_AGENT_PARSERS = [Pip6UserAgent, Pip1_4UserAgent]
 
 
 def parse(user_agent, *, _parsers=USER_AGENT_PARSERS):
