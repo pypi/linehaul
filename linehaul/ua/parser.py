@@ -115,11 +115,8 @@ def CondaUserAgent(*, version):
 
 
 @_parser.register
-@regex_ua_parser(r"^Bazel/(?P<version>.+)$")
+@regex_ua_parser(r"^Bazel/(?:release\s+)?(?P<version>.+)$")
 def BazelUserAgent(*, version):
-    if version.startswith("release "):
-        version = version[8:]
-
     return {"installer": {"name": "Bazel", "version": version}}
 
 
