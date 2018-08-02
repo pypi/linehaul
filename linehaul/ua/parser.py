@@ -178,6 +178,20 @@ def RequestsUserAgent(*, version):
     return {"installer": {"name": "requests", "version": version}}
 
 
+@_parser.register
+@regex_ua_parser(
+    (
+        r"^Homebrew/(?P<version>\S+) "
+        r"\(Macintosh; Intel (?:Mac OS X|macOS) (?P<osx_version>[^)]+)\)(?: .+)?$"
+    )
+)
+def HomebrewUserAgent(*, version, osx_version):
+    return {
+        "installer": {"name": "Homebrew", "version": version},
+        "distro": {"name": "OS X", "version": osx_version},
+    }
+
+
 class LegacyParser:
     _os_re = re.compile(
         r"""
@@ -185,7 +199,6 @@ class LegacyParser:
             ^fetch\ libfetch/\S+$ |
             ^libfetch/\S+$ |
             ^OpenBSD\ ftp$ |
-            ^Homebrew\ |
             ^MacPorts/? |
             ^NetBSD-ftp/ |
             ^slapt-get |
@@ -206,27 +219,6 @@ class LegacyParser:
             return
 
         return {"installer": {"name": "OS"}}
-
-    _homebrew_re = re.compile(
-        r"""
-        ^
-        Homebrew/(?P<version>\S+)
-        \s+
-        \(Macintosh;\ Intel\ Mac\ OS\ X\ (?P<osx_version>[^)]+)\)
-        """,
-        re.VERBOSE,
-    )
-
-    @classmethod
-    def homebrew_format(cls, user_agent):
-        m = cls._homebrew_re.search(user_agent)
-        if m is None:
-            return
-
-        return {
-            "installer": {"name": "Homebrew", "version": m.group("version")},
-            "distro": {"name": "OS X", "version": m.group("osx_version")},
-        }
 
     _browser_re = re.compile(
         r"""
@@ -304,12 +296,7 @@ class LegacyParser:
 
     @classmethod
     def parse(cls, user_agent):
-        formats = [
-            cls.requests_format,
-            cls.homebrew_format,
-            cls.os_format,
-            cls.browser_format,
-        ]
+        formats = [cls.os_format, cls.browser_format]
 
         for format in formats:
             try:
