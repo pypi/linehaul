@@ -46,14 +46,18 @@ _cattr.register_unstructure_hook(arrow.Arrow, lambda o: o.float_timestamp)
 
 
 def parse_line(line: bytes, token=None) -> Optional[_event_parser.Download]:
-    line = line.decode("utf8", errors="replace")
-
     # Check our token, and remove it from the start of the line if it matches.
+    # Note: We do this first, before we do any other manipulation of the line, because
+    #       we want to avoid things like decoding, etc introducing false postives or
+    #       negatives for this check.
     if token is not None:
         # TODO: Use a Constant Time Compare?
         if not line.startswith(token):
             return
         line = line[len(token) :]
+
+    # Now that we've authenticated the line, let's turn it into a str.
+    line = line.decode("utf8", errors="replace")
 
     # Parse the incoming Syslog Message, and get the download event out of it.
     try:
@@ -62,6 +66,8 @@ def parse_line(line: bytes, token=None) -> Optional[_event_parser.Download]:
         logger.error("Unparseable syslog message: %r", exc)
     except _event_parser.UnparseableEvent as exc:
         logger.error("Unparseable event: %r, exc")
+    except Exception:
+        logger.error("Unhandled error:", exc_info=True)
 
 
 def extract_item_date(item):
@@ -78,6 +84,28 @@ def compute_batches(all_items):
             {"insertId": str(uuid.uuid4()), "json": row}
             for row in _cattr.unstructure(items)
         ],
+
+
+def log_retries(logger):
+    def log_it(retry_obj, sleep, last_result):
+        level = min(
+            [logging.WARNING, (10 * retry_obj.statistics.get("attempt_number", 1))]
+        )
+        reason_text = "exception" if last_result.failed else "result"
+        reason_value = (
+            last_result.exception() if last_result.failed else last_result.result()
+        )
+        logger.log(
+            level,
+            "Retrying %s in %2d seconds (attempt %2d) due to %s: %r.",
+            retry_obj.fn.__qualname__,
+            sleep,
+            retry_obj.statistics.get("attempt_number", None),
+            reason_text,
+            reason_value,
+        )
+
+    return log_it
 
 
 #
@@ -132,28 +160,6 @@ async def handle_connection(
     finally:
         with trio.move_on_after(cleanup_timeout):
             await stream.aclose()
-
-
-def log_retries(logger):
-    def log_it(retry_obj, sleep, last_result):
-        level = min(
-            [logging.WARNING, (10 * retry_obj.statistics.get("attempt_number", 1))]
-        )
-        reason_text = "exception" if last_result.failed else "result"
-        reason_value = (
-            last_result.exception() if last_result.failed else last_result.result()
-        )
-        logger.log(
-            level,
-            "Retrying %s in %2d seconds (attempt %2d) due to %s: %r.",
-            retry_obj.fn.__qualname__,
-            sleep,
-            retry_obj.statistics.get("attempt_number", None),
-            reason_text,
-            reason_value,
-        )
-
-    return log_it
 
 
 @retry(
@@ -281,6 +287,11 @@ async def server(
     api_timeout=None,
     task_status=trio.TASK_STATUS_IGNORED,
 ):
+    # We want to make sure that the token we were given is a bytes object, and if it
+    # isn't then we'll encode it using utf8.
+    if isinstance(token, str):
+        token = token.encode("utf8")
+
     # Total number of buffered events is:
     #       qsize + (COUNT(send_batch) * batch_size)
     # However, the length of time a single send_batch call sticks around for is time
