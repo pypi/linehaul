@@ -66,6 +66,8 @@ def parse_line(line: bytes, token=None) -> Optional[_event_parser.Download]:
         logger.error("Unparseable syslog message: %r", exc)
     except _event_parser.UnparseableEvent as exc:
         logger.error("Unparseable event: %r, exc")
+    except Exception:
+        logger.error("Unhandled error:", exc_info=True)
 
 
 def extract_item_date(item):
