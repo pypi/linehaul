@@ -11,6 +11,9 @@
 # limitations under the License.
 
 import datetime
+import logging
+
+from unittest.mock import ANY
 
 import arrow
 
@@ -39,6 +42,38 @@ class TestParseLine:
     )
     def test_invalid_token_skips(self, token, line):
         assert parse_line(line, token=token) is None
+
+    @given(
+        st.none() | st.text(min_size=1).map(lambda tkn: tkn.encode("utf8")),
+        st.binary().filter(lambda ln: b"\n" not in ln),
+    )
+    def test_unparseable_syslog(self, caplog, token, line):
+        if token is not None:
+            line = token + line
+
+        caplog.clear()
+
+        assert parse_line(line, token=token) is None
+        assert caplog.record_tuples == [("linehaul.server", logging.ERROR, ANY)]
+        assert caplog.record_tuples[0][2].startswith("Unparseable syslog message")
+
+    @given(
+        st.none() | st.text(min_size=1).map(lambda tkn: tkn.encode("utf8")),
+        st.binary()
+        .filter(lambda ln: b"\n" not in ln)
+        .map(
+            lambda d: b"<134>2018-07-20T02:19:20Z cache-itm18828 linehaul[411617]: " + d
+        ),
+    )
+    def test_unparseable_event(self, caplog, token, line):
+        if token is not None:
+            line = token + line
+
+        caplog.clear()
+
+        assert parse_line(line, token=token) is None
+        assert caplog.record_tuples == [("linehaul.server", logging.ERROR, ANY)]
+        assert caplog.record_tuples[0][2].startswith("Unparseable event:")
 
 
 @given(
