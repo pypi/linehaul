@@ -1,0 +1,68 @@
+# Basic Example
+- event: 2@Fri, 20 Jul 2018 02:19:19 GMT|JP|/packages/ba/c8/a928c55457441c87366eb2423efca9aa0f46380994fd8a476153493c319a/cfn_flip-1.0.3.tar.gz|TLSv1.2|ECDHE-RSA-AES128-GCM-SHA256|cfn-flip|1.0.3|sdist|bandersnatch/2.2.1 (cpython 3.7.0-final0, Darwin x86_64)
+  result:
+    timestamp: Fri, 20 Jul 2018 02:19:19 GMT
+    url: /packages/ba/c8/a928c55457441c87366eb2423efca9aa0f46380994fd8a476153493c319a/cfn_flip-1.0.3.tar.gz
+    file:
+      filename: cfn_flip-1.0.3.tar.gz
+      project: cfn-flip
+      version: 1.0.3
+      type: sdist
+    tls_protocol: TLSv1.2
+    tls_cipher: ECDHE-RSA-AES128-GCM-SHA256
+    country_code: JP
+    details:
+      installer:
+        name: bandersnatch
+        version: 2.2.1
+
+
+# Country Code should be optional.
+- event: 2@Fri, 20 Jul 2018 02:19:19 GMT||/packages/ba/c8/a928c55457441c87366eb2423efca9aa0f46380994fd8a476153493c319a/cfn_flip-1.0.3.tar.gz|TLSv1.2|ECDHE-RSA-AES128-GCM-SHA256|cfn-flip|1.0.3|sdist|bandersnatch/2.2.1 (cpython 3.7.0-final0, Darwin x86_64)
+  result:
+    timestamp: Fri, 20 Jul 2018 02:19:19 GMT
+    url: /packages/ba/c8/a928c55457441c87366eb2423efca9aa0f46380994fd8a476153493c319a/cfn_flip-1.0.3.tar.gz
+    file:
+      filename: cfn_flip-1.0.3.tar.gz
+      project: cfn-flip
+      version: 1.0.3
+      type: sdist
+    tls_protocol: TLSv1.2
+    tls_cipher: ECDHE-RSA-AES128-GCM-SHA256
+    country_code: null
+    details:
+      installer:
+        name: bandersnatch
+        version: 2.2.1
+
+
+# The project details can be unknown (Name, Version, Package Type), in which case parsing should fail.
+- event: 2@Fri, 20 Jul 2018 02:19:19 GMT|JP|/packages/ba/c8/a928c55457441c87366eb2423efca9aa0f46380994fd8a476153493c319a/cfn_flip-1.0.3.tar.gz|TLSv1.2|ECDHE-RSA-AES128-GCM-SHA256|(null)|1.0.3|sdist|bandersnatch/2.2.1 (cpython 3.7.0-final0, Darwin x86_64)
+  result: !!python/name:builtins.TypeError ''
+- event: 2@Fri, 20 Jul 2018 02:19:19 GMT|JP|/packages/ba/c8/a928c55457441c87366eb2423efca9aa0f46380994fd8a476153493c319a/cfn_flip-1.0.3.tar.gz|TLSv1.2|ECDHE-RSA-AES128-GCM-SHA256|cfn-flip|(null)|sdist|bandersnatch/2.2.1 (cpython 3.7.0-final0, Darwin x86_64)
+  result: !!python/name:builtins.TypeError ''
+- event: 2@Fri, 20 Jul 2018 02:19:19 GMT|JP|/packages/ba/c8/a928c55457441c87366eb2423efca9aa0f46380994fd8a476153493c319a/cfn_flip-1.0.3.tar.gz|TLSv1.2|ECDHE-RSA-AES128-GCM-SHA256|cfn-flip|1.0.3|(null)|bandersnatch/2.2.1 (cpython 3.7.0-final0, Darwin x86_64)
+  result: !!python/name:builtins.ValueError ''
+- event: 2@Fri, 20 Jul 2018 02:19:19 GMT|JP|/packages/ba/c8/a928c55457441c87366eb2423efca9aa0f46380994fd8a476153493c319a/cfn_flip-1.0.3.tar.gz|TLSv1.2|ECDHE-RSA-AES128-GCM-SHA256|(null)|(null)|(null)|bandersnatch/2.2.1 (cpython 3.7.0-final0, Darwin x86_64)
+  result: !!python/name:builtins.ValueError ''
+
+
+# An Ignored User agent should return a None from the parser
+- event: 2@Fri, 20 Jul 2018 02:19:19 GMT|JP|/packages/ba/c8/a928c55457441c87366eb2423efca9aa0f46380994fd8a476153493c319a/cfn_flip-1.0.3.tar.gz|TLSv1.2|ECDHE-RSA-AES128-GCM-SHA256|cfn-flip|1.0.3|sdist|(null)
+  result: null
+
+
+# An Unknown user agent should still parse fine, just with a null details.
+- event: 2@Fri, 20 Jul 2018 02:19:19 GMT|JP|/packages/ba/c8/a928c55457441c87366eb2423efca9aa0f46380994fd8a476153493c319a/cfn_flip-1.0.3.tar.gz|TLSv1.2|ECDHE-RSA-AES128-GCM-SHA256|cfn-flip|1.0.3|sdist|This is a User Agent! However we have no idea what kind it is.
+  result:
+    timestamp: Fri, 20 Jul 2018 02:19:19 GMT
+    url: /packages/ba/c8/a928c55457441c87366eb2423efca9aa0f46380994fd8a476153493c319a/cfn_flip-1.0.3.tar.gz
+    file:
+      filename: cfn_flip-1.0.3.tar.gz
+      project: cfn-flip
+      version: 1.0.3
+      type: sdist
+    tls_protocol: TLSv1.2
+    tls_cipher: ECDHE-RSA-AES128-GCM-SHA256
+    country_code: JP
+    details: null

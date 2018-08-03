@@ -131,15 +131,14 @@ class PackageType(enum.Enum):
     bdist_wheel = "bdist_wheel"
     bdist_wininst = "bdist_wininst"
     sdist = "sdist"
-    unknown = None
 
 
 @attr.s(slots=True, frozen=True)
 class File:
 
-    filename = attr.ib(type=str)
-    project = attr.ib(type=str)
-    version = attr.ib(type=str)
+    filename = attr.ib(validator=attr.validators.instance_of(str))
+    project = attr.ib(validator=attr.validators.instance_of(str))
+    version = attr.ib(validator=attr.validators.instance_of(str))
     type = attr.ib(type=PackageType)
 
 
@@ -147,11 +146,20 @@ class File:
 class Download:
 
     timestamp = attr.ib(type=arrow.Arrow)
-    url = attr.ib(type=str)
+    url = attr.ib(validator=attr.validators.instance_of(str))
     file = attr.ib(type=File)
-    tls_protocol = attr.ib(type=Optional[str], default=None)
-    tls_cipher = attr.ib(type=Optional[str], default=None)
-    country_code = attr.ib(type=Optional[str], default=None)
+    tls_protocol = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of(str)),
+    )
+    tls_cipher = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of(str)),
+    )
+    country_code = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of(str)),
+    )
     details = attr.ib(type=Optional[UserAgent], default=None)
 
 
