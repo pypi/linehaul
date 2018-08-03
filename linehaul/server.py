@@ -46,14 +46,18 @@ _cattr.register_unstructure_hook(arrow.Arrow, lambda o: o.float_timestamp)
 
 
 def parse_line(line: bytes, token=None) -> Optional[_event_parser.Download]:
-    line = line.decode("utf8", errors="replace")
-
     # Check our token, and remove it from the start of the line if it matches.
+    # Note: We do this first, before we do any other manipulation of the line, because
+    #       we want to avoid things like decoding, etc introducing false postives or
+    #       negatives for this check.
     if token is not None:
         # TODO: Use a Constant Time Compare?
         if not line.startswith(token):
             return
         line = line[len(token) :]
+
+    # Now that we've authenticated the line, let's turn it into a str.
+    line = line.decode("utf8", errors="replace")
 
     # Parse the incoming Syslog Message, and get the download event out of it.
     try:
@@ -281,6 +285,11 @@ async def server(
     api_timeout=None,
     task_status=trio.TASK_STATUS_IGNORED,
 ):
+    # We want to make sure that the token we were given is a bytes object, and if it
+    # isn't then we'll encode it using utf8.
+    if isinstance(token, str):
+        token = token.encode("utf8")
+
     # Total number of buffered events is:
     #       qsize + (COUNT(send_batch) * batch_size)
     # However, the length of time a single send_batch call sticks around for is time

@@ -17,7 +17,28 @@ import arrow
 from hypothesis import given, strategies as st
 
 from linehaul.events.parser import Download
-from linehaul.server import compute_batches, extract_item_date
+from linehaul.server import compute_batches, extract_item_date, parse_line
+
+
+class TestParseLine:
+    @given(
+        st.shared(
+            st.text(min_size=1).map(lambda tkn: tkn.encode("utf8")),
+            key="parse-line-token",
+        ),
+        (
+            st.shared(
+                st.text(min_size=1).map(lambda tkn: tkn.encode("utf8")),
+                key="parse-line-token",
+            ).flatmap(
+                lambda tkn: st.binary().filter(
+                    lambda ln: b"\n" not in ln and not ln.startswith(tkn)
+                )
+            )
+        ),
+    )
+    def test_invalid_token_skips(self, token, line):
+        assert parse_line(line, token=token) is None
 
 
 @given(
