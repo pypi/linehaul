@@ -80,6 +80,28 @@ def compute_batches(all_items):
         ],
 
 
+def log_retries(logger):
+    def log_it(retry_obj, sleep, last_result):
+        level = min(
+            [logging.WARNING, (10 * retry_obj.statistics.get("attempt_number", 1))]
+        )
+        reason_text = "exception" if last_result.failed else "result"
+        reason_value = (
+            last_result.exception() if last_result.failed else last_result.result()
+        )
+        logger.log(
+            level,
+            "Retrying %s in %2d seconds (attempt %2d) due to %s: %r.",
+            retry_obj.fn.__qualname__,
+            sleep,
+            retry_obj.statistics.get("attempt_number", None),
+            reason_text,
+            reason_value,
+        )
+
+    return log_it
+
+
 #
 # I/O Functions
 #
@@ -132,28 +154,6 @@ async def handle_connection(
     finally:
         with trio.move_on_after(cleanup_timeout):
             await stream.aclose()
-
-
-def log_retries(logger):
-    def log_it(retry_obj, sleep, last_result):
-        level = min(
-            [logging.WARNING, (10 * retry_obj.statistics.get("attempt_number", 1))]
-        )
-        reason_text = "exception" if last_result.failed else "result"
-        reason_value = (
-            last_result.exception() if last_result.failed else last_result.result()
-        )
-        logger.log(
-            level,
-            "Retrying %s in %2d seconds (attempt %2d) due to %s: %r.",
-            retry_obj.fn.__qualname__,
-            sleep,
-            retry_obj.statistics.get("attempt_number", None),
-            reason_text,
-            reason_value,
-        )
-
-    return log_it
 
 
 @retry(
