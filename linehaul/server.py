@@ -114,7 +114,13 @@ def log_retries(logger):
 
 
 async def handle_connection(
-    stream, q, token=None, max_line_size=None, recv_size=None, cleanup_timeout=None
+    stream,
+    download_queue,
+    simple_queue,
+    token=None,
+    max_line_size=None,
+    recv_size=None,
+    cleanup_timeout=None,
 ):
     if recv_size is None:
         recv_size = 8192
@@ -136,6 +142,11 @@ async def handle_connection(
 
     lr = LineReceiver(partial(parse_line, token=token), max_line_size=max_line_size)
 
+    queues = {
+        _event_parser.Download: download_queue,
+        _event_parser.SimpleRequest: simple_queue,
+    }
+
     try:
         while True:
             try:
@@ -145,7 +156,12 @@ async def handle_connection(
 
             for event in lr.receive_data(data):
                 logger.log(log_SPEW, "{%s}: Received Event: %r", peer_id, event)
-                await q.put(event)
+                try:
+                    queue = queues[type(event)]
+                except KeyError:
+                    logger.error("{%s}: Unknown event type: %r", peer_id, event)
+                else:
+                    await queue.put(event)
 
             if not data:
                 logger.debug("{%s}: Connection lost from %r.", peer_id, peer)
@@ -270,7 +286,8 @@ async def sender(
 
 async def server(
     bq,
-    table,
+    download_table,
+    simple_table,
     bind="0.0.0.0",
     port=512,
     tls_certificate=None,
@@ -298,15 +315,30 @@ async def server(
     # boxed, so this won't grow forever. It will not however, apply any backpressure
     # to the sender (we can't meaningfully apply backpressure, since these are download
     # events being streamed to us).
-    q = trio.Queue(qsize)
+    download_queue = trio.Queue(qsize)
+    simple_queue = trio.Queue(qsize)
 
     async with trio.open_nursery() as nursery:
         nursery.start_soon(
             partial(
                 sender,
                 bq,
-                table,
-                q,
+                download_table,
+                download_queue,
+                batch_size=batch_size,
+                batch_timeout=batch_timeout,
+                retry_max_attempts=retry_max_attempts,
+                retry_max_wait=retry_max_wait,
+                retry_multiplier=retry_multiplier,
+                api_timeout=api_timeout,
+            )
+        )
+        nursery.start_soon(
+            partial(
+                sender,
+                bq,
+                simple_table,
+                simple_queue,
                 batch_size=batch_size,
                 batch_timeout=batch_timeout,
                 retry_max_attempts=retry_max_attempts,
@@ -318,7 +350,8 @@ async def server(
 
         handler = partial(
             handle_connection,
-            q=q,
+            download_queue=download_queue,
+            simple_queue=simple_queue,
             token=token,
             max_line_size=max_line_size,
             recv_size=recv_size,
@@ -332,5 +365,11 @@ async def server(
 
             await nursery.start(trio.serve_ssl_over_tcp, handler, port, ctx)
 
-        logging.info("Listening on %s:%d and sending to %r", bind, port, table)
+        logging.info(
+            "Listening on %s:%d and sending to %r and %r",
+            bind,
+            port,
+            download_table,
+            simple_table,
+        )
         task_status.started()

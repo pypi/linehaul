@@ -260,7 +260,8 @@ def cli(log_level, log_file):
     show_default=True,
     help="Maximum number of concurrent connections to BigQuery.",
 )
-@click.argument("table")
+@click.argument("downloads-table")
+@click.argument("simple-requests-table")
 def server(
     credentials_file,
     credentials_blob,
@@ -279,7 +280,8 @@ def server(
     retry_multiplier,
     api_timeout,
     api_max_connections,
-    table,
+    downloads_table,
+    simple_requests_table,
 ):
     """
     Starts a server in the foreground that listens for incoming syslog events, processes
@@ -320,7 +322,8 @@ def server(
             partial(
                 server_,
                 bq,
-                table,
+                downloads_table,
+                simple_requests_table,
                 bind=bind,
                 port=port,
                 tls_certificate=tls_certificate,
