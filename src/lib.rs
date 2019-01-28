@@ -9,8 +9,7 @@ mod syslog;
 
 pub fn process<'a>(lines: impl Iterator<Item = &'a str>) {
     for line in lines {
-        info!("Found line: {:?}", line);
-        info!("{:?}", line.parse::<syslog::SyslogMessage>());
+        let message: SyslogMessage = line.parse();
         break;
     }
 }
