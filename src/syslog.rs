@@ -1,14 +1,9 @@
 use std::str;
 
 use chrono::{DateTime, TimeZone, Utc};
-use log::{error, info};
-use nom::{
-    anychar, begin, count, delimited, digit, is_digit, many0, many1, rest, take, take_until,
-    take_while_m_n, IResult,
-};
+use nom::{delimited, digit, rest, take_until, take_while_m_n};
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
-
 
 #[derive(Debug, FromPrimitive, ToPrimitive)]
 enum Facility {
@@ -63,7 +58,6 @@ pub struct SyslogMessage {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SyslogParseError(());
-
 
 impl str::FromStr for SyslogMessage {
     type Err = SyslogParseError;

@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::prelude::*;
 
 use flate2::read::GzDecoder;
-use log::{error, info};
+use log::info;
 use simple_logger;
 
 fn main() -> Result<(), Box<dyn Error>> {
