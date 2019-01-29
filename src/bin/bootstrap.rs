@@ -2,6 +2,7 @@ use std::error::Error;
 
 use aws_lambda_events::event::s3::{S3Event, S3EventRecord};
 use aws_lambda_events::event::sqs::SqsEvent;
+use backoff::{ExponentialBackoff, Operation};
 use lambda_runtime::{error::HandlerError, lambda, Context};
 use log::error;
 use rusoto_core::Region;
@@ -34,13 +35,18 @@ fn process_event(event: &S3EventRecord) -> Result<(), Box<dyn Error>> {
         .ok_or("No Key specified.".to_owned())?
         .to_string();
 
-    let output = client
-        .get_object(GetObjectRequest {
-            bucket: bucket.clone(),
-            key: key.clone(),
-            ..Default::default()
-        })
-        .sync()?;
+    let mut op = || {
+        let output = client
+            .get_object(GetObjectRequest {
+                bucket: bucket.clone(),
+                key: key.clone(),
+                ..Default::default()
+            })
+            .sync()?;
+        Ok(output)
+    };
+    let mut backoff = ExponentialBackoff::default();
+    let output = op.retry(&mut backoff)?;
 
     match output.body {
         Some(b) => {

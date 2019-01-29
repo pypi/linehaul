@@ -19,6 +19,7 @@ nom = "4.1"
 num-traits = "0.2"
 num-derive = "0.2"
 chrono = "0.4"
+backoff = "0.1.2"
 
 [profile.release]
 lto = true
