@@ -44,7 +44,7 @@ fn process_event(event: &S3EventRecord) -> Result<(), Box<dyn Error>> {
 
     match output.body {
         Some(b) => {
-            linehaul::process_file(b.into_blocking_read())?;
+            linehaul::process_reader(b.into_blocking_read())?;
 
             client
                 .delete_object(DeleteObjectRequest {

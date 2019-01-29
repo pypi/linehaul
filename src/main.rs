@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let filename = env::args().nth(1).unwrap();
     let file = File::open(filename)?;
 
-    linehaul::process_file(file)?;
+    linehaul::process_reader(file)?;
 
     Ok(())
 }

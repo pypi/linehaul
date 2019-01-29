@@ -37,7 +37,7 @@ pub fn process<'a>(lines: impl Iterator<Item = &'a str>) {
     }
 }
 
-pub fn process_file(file: impl Read) -> Result<(), Box<dyn Error>> {
+pub fn process_reader(file: impl Read) -> Result<(), Box<dyn Error>> {
     let mut gz = GzDecoder::new(file);
     let mut buffer = Vec::new();
 
