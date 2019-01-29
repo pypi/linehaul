@@ -1,9 +1,7 @@
 use std::error::Error;
-use std::io::Read;
 
 use aws_lambda_events::event::s3::{S3Event, S3EventRecord};
 use aws_lambda_events::event::sqs::SqsEvent;
-use flate2::read::GzDecoder;
 use lambda_runtime::{error::HandlerError, lambda, Context};
 use log::error;
 use rusoto_core::Region;
@@ -46,12 +44,7 @@ fn process_event(event: &S3EventRecord) -> Result<(), Box<dyn Error>> {
 
     match output.body {
         Some(b) => {
-            let mut gz = GzDecoder::new(b.into_blocking_read());
-            let mut contents = String::new();
-
-            gz.read_to_string(&mut contents)?;
-
-            linehaul::process(contents.split("\n"));
+            linehaul::process_file(b.into_blocking_read())?;
 
             client
                 .delete_object(DeleteObjectRequest {
@@ -62,7 +55,7 @@ fn process_event(event: &S3EventRecord) -> Result<(), Box<dyn Error>> {
                 .sync()?;
         }
         None => {
-            error!("No body found for {:?}, skipping deletion.", key);
+            error!("No body found for {:?}.", key);
         }
     }
 

@@ -1,9 +1,7 @@
 use std::env;
 use std::error::Error;
 use std::fs::File;
-use std::io::prelude::*;
 
-use flate2::read::GzDecoder;
 use simple_logger;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -12,12 +10,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Prints each argument on a separate line
     let filename = env::args().nth(1).unwrap();
     let file = File::open(filename)?;
-    let mut gz = GzDecoder::new(&file);
-    let mut contents = String::new();
 
-    gz.read_to_string(&mut contents)?;
-
-    linehaul::process(contents.split("\n"));
+    linehaul::process_file(file)?;
 
     Ok(())
 }
