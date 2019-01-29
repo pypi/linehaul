@@ -6,7 +6,7 @@ use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
 
 #[derive(Debug, FromPrimitive, ToPrimitive)]
-enum Facility {
+pub enum Facility {
     Kernel = 0,
     User = 1,
     Mail = 2,
@@ -34,7 +34,7 @@ enum Facility {
 }
 
 #[derive(Debug, FromPrimitive, ToPrimitive)]
-enum Severity {
+pub enum Severity {
     Emergency = 0,
     Alert = 1,
     Critical = 2,
@@ -47,13 +47,13 @@ enum Severity {
 
 #[derive(Debug)]
 pub struct SyslogMessage {
-    facility: Facility,
-    severity: Severity,
-    timestamp: DateTime<Utc>,
-    hostname: Option<String>,
-    appname: String,
-    procid: Option<String>,
-    message: String,
+    pub facility: Facility,
+    pub severity: Severity,
+    pub timestamp: DateTime<Utc>,
+    pub hostname: Option<String>,
+    pub appname: String,
+    pub procid: Option<String>,
+    pub message: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
