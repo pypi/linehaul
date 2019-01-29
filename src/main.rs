@@ -4,13 +4,10 @@ use std::fs::File;
 use std::io::prelude::*;
 
 use flate2::read::GzDecoder;
-use log::info;
 use simple_logger;
 
 fn main() -> Result<(), Box<dyn Error>> {
     simple_logger::init_with_level(log::Level::Info)?;
-
-    info!("Running");
 
     // Prints each argument on a separate line
     let filename = env::args().nth(1).unwrap();
