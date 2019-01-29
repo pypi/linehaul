@@ -1,12 +1,13 @@
 use std::error::Error;
+use std::time;
 
 use aws_lambda_events::event::s3::{S3Event, S3EventRecord};
 use aws_lambda_events::event::sqs::SqsEvent;
-use backoff::{ExponentialBackoff, Operation};
+use backoff::{Error as BackoffError, ExponentialBackoff, Operation};
 use lambda_runtime::{error::HandlerError, lambda, Context};
-use log::error;
+use log::{error, warn};
 use rusoto_core::Region;
-use rusoto_s3::{DeleteObjectRequest, GetObjectRequest, S3Client, S3};
+use rusoto_s3::{DeleteObjectRequest, GetObjectError, GetObjectRequest, S3Client, S3};
 use serde_json;
 use simple_logger;
 
@@ -42,11 +43,33 @@ fn process_event(event: &S3EventRecord) -> Result<(), Box<dyn Error>> {
                 key: key.clone(),
                 ..Default::default()
             })
-            .sync()?;
+            .sync()
+            // We turn NoSuchKey into Permanent errors to skip the retry logic for them,
+            // however all other errors will be flagged as a transient error.
+            .map_err(|e| match &e {
+                GetObjectError::NoSuchKey(_s) => BackoffError::Permanent(e),
+                _ => BackoffError::Transient(e),
+            })?;
         Ok(output)
     };
-    let mut backoff = ExponentialBackoff::default();
-    let output = op.retry(&mut backoff)?;
+    let mut backoff = ExponentialBackoff {
+        max_elapsed_time: Some(time::Duration::from_secs(60)),
+        ..Default::default()
+    };
+    let output = match op.retry_notify(&mut backoff, |err, dur| {
+        warn!("Error occured fetching {:?} at {:?}: {}", key, dur, err)
+    }) {
+        Ok(o) => o,
+        // This gnarly chain is here to make it so errors generally get returned,
+        // however in the specific case of a GetObjectError::NoSuchKey, we will
+        // act like this function was successful.
+        Err(e) => match e {
+            BackoffError::Permanent(e) | BackoffError::Transient(e) => match e {
+                GetObjectError::NoSuchKey(_s) => return Ok(()),
+                _ => return Err(Box::new(e)),
+            },
+        },
+    };
 
     match output.body {
         Some(b) => {
