@@ -6,7 +6,7 @@ use std::str;
 extern crate nom;
 
 use flate2::read::GzDecoder;
-use log::{error, info, warn};
+use log::{error, warn};
 
 mod events;
 mod syslog;
@@ -23,17 +23,13 @@ pub fn process<'a>(lines: impl Iterator<Item = &'a str>) {
         };
 
         // Parse the log entry as an event.
-        let event: events::Event = match message.message.parse() {
+        let _event: events::Event = match message.message.parse() {
             Ok(e) => e,
             Err(_e) => {
                 error!("Could not parse '{:?}' as an event.", message.message);
                 continue;
             }
         };
-
-        info!("Event: {:?}", event);
-
-        break;
     }
 }
 
