@@ -19,7 +19,12 @@ impl str::FromStr for Event {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match parse(s) {
-            Ok(p) => Ok(p.1),
+            Ok(p) => match p.1 {
+                Some(e) => Ok(e),
+                // TODO: Replace with a different Error that signals to skip this
+                //       entry, rather than the same as a failure to parse.
+                None => Err(EventParseError(())),
+            },
             Err(e) => {
                 info!("{:?}", e);
                 Err(EventParseError(()))
@@ -30,10 +35,15 @@ impl str::FromStr for Event {
 
 named!(bar <&str, &str>, tag!("|"));
 
-named!(parse <&str, Event>,
+named!(parse <&str, Option<Event>>,
     do_parse!(
                tag!("3@")
     >> simple: parse_simple_v3
-    >> (Event::SimpleRequest(simple))
+    >> ({
+            match simple {
+                Some(simple) => Some(Event::SimpleRequest(simple)),
+                None => None,
+            }
+        })
     )
 );

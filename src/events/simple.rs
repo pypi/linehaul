@@ -1,6 +1,8 @@
 use chrono::{DateTime, TimeZone, Utc};
 use nom::{rest, space, take_until, take_while_m_n};
 
+use super::super::ua;
+
 #[derive(Debug)]
 pub struct SimpleRequest {
     pub timestamp: DateTime<Utc>,
@@ -9,7 +11,7 @@ pub struct SimpleRequest {
     pub tls_protocol: Option<String>,
     pub tls_cipher: Option<String>,
     pub country_code: String,
-    pub details: String,
+    pub details: ua::UserAgent,
 }
 
 named!(nulll_str <&str, Option<&str>>, do_parse!(tag!("-") >> (None)));
@@ -87,7 +89,7 @@ named!(date <&str, DateTime<Utc>>,
     )
 );
 
-named!(pub parse_v3 <&str, SimpleRequest>,
+named!(pub parse_v3 <&str, Option<SimpleRequest>>,
     do_parse!(
                      tag!("simple")
     >>               bar
@@ -117,9 +119,13 @@ named!(pub parse_v3 <&str, SimpleRequest>,
                 Some(s) => Some(s.to_string()),
                 None => None,
             };
-            let user_agent = user_agent.to_string();
 
-            SimpleRequest{timestamp, url, project, tls_protocol, tls_cipher, country_code, details: user_agent}
+            match ua::parse(user_agent) {
+                Some(user_agent) => {
+                    Some(SimpleRequest{timestamp, url, project, tls_protocol, tls_cipher, country_code, details: user_agent})
+                },
+                None => None,
+            }
        })
     )
 );

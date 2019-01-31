@@ -3,6 +3,9 @@ use std::io::prelude::*;
 use std::str;
 
 #[macro_use]
+extern crate lazy_static;
+
+#[macro_use]
 extern crate nom;
 
 use flate2::read::GzDecoder;
@@ -10,6 +13,7 @@ use log::{error, warn};
 
 mod events;
 mod syslog;
+mod ua;
 
 pub fn process<'a>(lines: impl Iterator<Item = &'a str>) {
     for line in lines {
