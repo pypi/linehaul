@@ -2,6 +2,9 @@ use regex::{Regex, RegexSet};
 use serde::{Deserialize, Serialize};
 use serde_json;
 
+#[macro_use]
+mod macros;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Installer {
     pub name: Option<String>,
@@ -47,33 +50,22 @@ pub struct UserAgent {
 }
 
 lazy_static! {
-    static ref RE: RegexSet = RegexSet::new(PATTERNS.iter().map(|i| i.0)).unwrap();
-    static ref RES: Vec<Regex> = PATTERNS.iter().map(|i| Regex::new(i.0).unwrap()).collect();
+    static ref PARSER: UserAgentParser = UserAgentParser::new();
 }
 
-static PATTERNS: &[(&str, fn(&Regex, &str) -> Option<UserAgent>)] =
-    &[(r"^pip/\S+\s+(?P<data>.+)$", parse_pip6)];
+ua_parser!(
+    UserAgentParser,
+    pip6(r"^pip/\S+\s+(?P<data>.+)$") => |re, input| {
+        let caps = re.captures(input).unwrap();
+        let parsed = serde_json::from_str::<UserAgent>(&caps["data"]);
 
-fn parse_pip6(re: &Regex, input: &str) -> Option<UserAgent> {
-    let caps = re.captures(input).unwrap();
-    let parsed = serde_json::from_str::<UserAgent>(&caps["data"]);
-
-    match parsed {
-        Ok(ua) => Some(ua),
-        Err(_e) => None,
-    }
-}
-
-pub fn parse(input: &str) -> Option<UserAgent> {
-    for match_ in RE.matches(input).iter() {
-        let func = PATTERNS[match_].1;
-        let re = &RES[match_];
-
-        match func(re, input) {
-            Some(ua) => return Some(ua),
-            None => continue,
+        match parsed {
+            Ok(ua) => Some(ua),
+            Err(_e) => None,
         }
     }
+);
 
-    None
+pub fn parse(input: &str) -> Option<UserAgent> {
+    PARSER.parse(input)
 }
