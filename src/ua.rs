@@ -66,8 +66,8 @@ fn parse_pip6(re: &Regex, input: &str) -> Option<UserAgent> {
 
 pub fn parse(input: &str) -> Option<UserAgent> {
     for match_ in RE.matches(input).iter() {
-        let func = PATTERNS.iter().nth(match_).unwrap().1;
-        let re = RES.iter().nth(match_).unwrap();
+        let func = PATTERNS[match_].1;
+        let re = &RES[match_];
 
         match func(re, input) {
             Some(ua) => return Some(ua),
