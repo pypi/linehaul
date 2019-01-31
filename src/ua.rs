@@ -46,13 +46,13 @@ pub struct UserAgent {
     pub setuptools_version: Option<String>,
 }
 
-static PATTERNS: &[(&str, fn(&Regex, &str) -> Option<UserAgent>)] =
-    &[(r"^pip/\S+\s+(?P<data>.+)$", parse_pip6)];
-
 lazy_static! {
     static ref RE: RegexSet = RegexSet::new(PATTERNS.iter().map(|i| i.0)).unwrap();
     static ref RES: Vec<Regex> = PATTERNS.iter().map(|i| Regex::new(i.0).unwrap()).collect();
 }
+
+static PATTERNS: &[(&str, fn(&Regex, &str) -> Option<UserAgent>)] =
+    &[(r"^pip/\S+\s+(?P<data>.+)$", parse_pip6)];
 
 fn parse_pip6(re: &Regex, input: &str) -> Option<UserAgent> {
     let caps = re.captures(input).unwrap();
