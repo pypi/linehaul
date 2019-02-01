@@ -8,7 +8,10 @@ pub struct Installer {
 
 impl Default for Installer {
     fn default() -> Self {
-        Installer { name: None, version: None }
+        Installer {
+            name: None,
+            version: None,
+        }
     }
 }
 
@@ -34,7 +37,12 @@ pub struct Distro {
 
 impl Default for Distro {
     fn default() -> Self {
-        Distro { name: None, version: None, id: None, libc: None }
+        Distro {
+            name: None,
+            version: None,
+            id: None,
+            libc: None,
+        }
     }
 }
 
