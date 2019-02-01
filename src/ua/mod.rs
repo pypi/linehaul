@@ -89,6 +89,10 @@ ua_parser!(
     conda(r"^conda/(?P<version>\S+)(?: .+)?$") => |version| {
         user_agent!(installer: installer!("conda", version))
     },
+
+    bazel(r"^Bazel/(?:release\s+)?(?P<version>.+)$") => |version| {
+        user_agent!(installer: installer!("Bazel", version))
+    },
 );
 
 pub fn parse(input: &str) -> Option<UserAgent> {
