@@ -34,6 +34,9 @@ pub fn process<'a>(lines: impl Iterator<Item = &'a str>) {
                     events::EventParseError::IgnoredUserAgent => {
                         debug!("Skipping {:?}.", message.message)
                     }
+                    events::EventParseError::InvalidUserAgent => {
+                        error!("Invalid user agent in message: {:?}", message.message)
+                    },
                     events::EventParseError::Error => {
                         error!("Could not parse {:?} as an event.", message.message)
                     }

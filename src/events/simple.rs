@@ -1,5 +1,5 @@
 use chrono::{DateTime, TimeZone, Utc};
-use nom::{rest, space, take_until, take_while_m_n};
+use nom::{rest, space, take_until, take_while_m_n, Context, Err as NomErr, ErrorKind};
 
 use super::super::ua;
 
@@ -121,10 +121,17 @@ named!(pub parse_v3 <&str, Option<SimpleRequest>>,
             };
 
             match ua::parse(user_agent) {
-                Some(user_agent) => {
-                    Some(SimpleRequest{timestamp, url, project, tls_protocol, tls_cipher, country_code, details: user_agent})
+                Ok(ua) => match ua {
+                    Some(user_agent) => {
+                        Some(SimpleRequest{timestamp, url, project, tls_protocol, tls_cipher, country_code, details: user_agent})
+                    },
+                    None => {
+                        return Err(NomErr::Failure(Context::Code("", ErrorKind::Custom(124))));
+                    },
                 },
-                None => None,
+                Err(_e) => {
+                    return Err(NomErr::Failure(Context::Code("", ErrorKind::Custom(123))));
+                }
             }
        })
     )

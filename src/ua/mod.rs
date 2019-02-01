@@ -1,3 +1,6 @@
+use std::error;
+use std::fmt;
+
 use serde_json;
 
 pub use types::{Distro, Implementation, Installer, LibC, System, UserAgent};
@@ -10,6 +13,33 @@ lazy_static! {
     static ref PARSER: UserAgentParser = UserAgentParser::new();
 }
 
+#[derive(Debug, Clone)]
+pub struct UserAgentParseError {
+    ua: String,
+}
+
+impl fmt::Display for UserAgentParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Unknown or invalid user agent: {:?}", self.ua)
+    }
+}
+
+impl error::Error for UserAgentParseError {
+    fn description(&self) -> &str {
+        "Unknown or invalid user agent"
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        None
+    }
+}
+
+enum IOption<T> {
+    None,
+    Ignored,
+    Some(T),
+}
+
 ua_parser!(
     UserAgentParser,
 
@@ -20,8 +50,8 @@ ua_parser!(
         //       think it might be pointless to do though, because if it's not pip 6+
         //       then serde will fail to deserialize and we should move onto the next.
         match serde_json::from_str::<UserAgent>(data) {
-            Ok(ua) => Some(ua),
-            Err(_e) => None,
+            Ok(ua) => IOption::Some(ua),
+            Err(_e) => IOption::None,
         }
     },
 
@@ -181,10 +211,10 @@ ua_parser!(
         r"^Debian uscan",
         r"^Pingdom\.com_bot_version_\d+\.\d+_\(https?://www.pingdom.com/\)$",
         r"^MauiBot \(crawler\.feedback\+dc@gmail\.com\)$",
-    ) => |,| { None },
+    ) => |,| { IOption::Ignored },
 );
 
-pub fn parse(input: &str) -> Option<UserAgent> {
+pub fn parse(input: &str) -> Result<Option<UserAgent>, UserAgentParseError> {
     PARSER.parse(input)
 }
 

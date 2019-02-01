@@ -26,7 +26,7 @@ macro_rules! ua_parser {
                 $parser{regex, regexes, callbacks}
             }
 
-            fn parse(&self, input: &str) -> Option<UserAgent> {
+            fn parse(&self, input: &str) -> Result<Option<UserAgent>, UserAgentParseError> {
                 for match_ in self.regex.matches(input).iter() {
                     let re = &self.regex.patterns()[match_];
                     let func_name = &self.callbacks[re];
@@ -42,15 +42,16 @@ macro_rules! ua_parser {
                     };
 
                     match parsed {
-                        Some(ua) => return Some(ua),
-                        None => continue,
+                        IOption::Some(ua) => return Ok(Some(ua)),
+                        IOption::Ignored => return Ok(None),
+                        IOption::None => continue,
                     };
                 }
 
-                None
+                Err(UserAgentParseError{ua: input.to_string()})
             }
 
-            $(fn $name($($param: &str),*) -> Option<UserAgent> $body)*
+            $(fn $name($($param: &str),*) -> IOption<UserAgent> $body)*
         }
     };
 }
@@ -97,7 +98,7 @@ macro_rules! system {
 #[macro_export]
 macro_rules! user_agent {
     ($($name:ident : $value:expr),* $(,)?) => {
-        Some(UserAgent { $($name: $value),*, ..Default::default() })
+        IOption::Some(UserAgent { $($name: $value),*, ..Default::default() })
     };
 }
 

@@ -1,5 +1,7 @@
 use std::str;
 
+use nom::{Context, Err as NomErr, ErrorKind};
+
 use simple::parse_v3 as parse_simple_v3;
 pub use simple::SimpleRequest;
 
@@ -13,6 +15,7 @@ pub enum Event {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EventParseError {
     IgnoredUserAgent,
+    InvalidUserAgent,
     Error,
 }
 
@@ -25,7 +28,19 @@ impl str::FromStr for Event {
                 Some(e) => Ok(e),
                 None => Err(EventParseError::IgnoredUserAgent),
             },
-            Err(_e) => Err(EventParseError::Error),
+            Err(e) => match e {
+                NomErr::Failure(c) => match c {
+                    Context::Code(_i, ek) => match ek {
+                        ErrorKind::Custom(i) => match i {
+                            123 => Err(EventParseError::InvalidUserAgent),
+                            124 => Err(EventParseError::IgnoredUserAgent),
+                            _ => Err(EventParseError::Error),
+                        },
+                        _ => Err(EventParseError::Error),
+                    },
+                },
+                _ => Err(EventParseError::Error),
+            },
         }
     }
 }
