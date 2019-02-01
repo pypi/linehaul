@@ -117,6 +117,15 @@ ua_parser!(
     pep381client(r"^pep381client(?:-proxy)?/(?P<version>\S+)$") => |version| {
         user_agent!(installer: installer!("pep381client", version))
     },
+
+    homebrew(concat!(r"^Homebrew/(?P<version>\S+) ",
+                     r"\(Macintosh; Intel (?:Mac OS X|macOS) (?P<osx_version>[^)]+)\)(?: .+)?$"))
+            => |version, osx_version| {
+        user_agent!(
+            installer: installer!("Homebrew", version),
+            distro: distro!(name: Some("OS X".to_string()), version: Some(osx_version.to_string())),
+        )
+    },
 );
 
 pub fn parse(input: &str) -> Option<UserAgent> {
