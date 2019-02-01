@@ -1,28 +1,37 @@
 #[macro_export]
 macro_rules! ua_parser {
-    ($parser:ident, $($name:ident($pattern:expr) => |$($param:ident),*| $body:block),+) => {
+    ($parser:ident, $($name:ident($($pattern:expr),+) => |$($param:ident),*| $body:block),+) => {
+        use std::collections::HashMap;
+
+        use regex::{Regex, RegexSet};
+
         struct $parser {
             regex: RegexSet,
-            regexes: Vec<Regex>,
-            callbacks: Vec<String>,
+            regexes: HashMap<String, Regex>,
+            callbacks: HashMap<String, String>,
         }
 
         impl $parser {
             fn new() -> $parser {
                 println!("new");
-                let patterns = vec![$($pattern),*];
-                let regex = RegexSet::new(&patterns).unwrap();
-                let regexes: Vec<Regex> = patterns.iter().map(|p| Regex::new(p).unwrap()).collect();
-                let callbacks = vec![$(String::from(stringify!($name))),*];
+                let patterns = vec![$($($pattern),+),*];
+                let regex = RegexSet::new(patterns).unwrap();
+                let mut regexes = HashMap::new();
+                let mut callbacks = HashMap::new();
+
+                $($(
+                    regexes.insert($pattern.to_string(), Regex::new($pattern).unwrap());
+                    callbacks.insert($pattern.to_string(), String::from(stringify!($name)))
+                );+);*;
 
                 $parser{regex, regexes, callbacks}
             }
 
             fn parse(&self, input: &str) -> Option<UserAgent> {
                 for match_ in self.regex.matches(input).iter() {
-                    let re = &self.regexes[match_];
-                    let caps = re.captures(input).unwrap();
-                    let func_name = &self.callbacks[match_];
+                    let re = &self.regex.patterns()[match_];
+                    let func_name = &self.callbacks[re];
+                    let caps = self.regexes[re].captures(input).unwrap();
 
                     let parsed = match func_name.as_ref() {
                         $(stringify!($name) => {

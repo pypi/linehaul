@@ -1,4 +1,3 @@
-use regex::{Regex, RegexSet};
 use serde_json;
 
 pub use types::{Distro, Implementation, Installer, LibC, System, UserAgent};
@@ -67,6 +66,40 @@ ua_parser!(
                 implementation: Some(implementation),
                 system: Some(system),
                 python: python,
+                ..Default::default()
+            }
+        )
+    },
+
+    distribute(r"^Python-urllib/(?P<python>\d\.\d) distribute/(?P<version>\S+)$")
+            => |python, version| {
+        let installer = Installer {
+            name: Some("distribute".to_string()),
+            version: Some(version.to_string()),
+        };
+
+        Some(
+            UserAgent {
+                installer: Some(installer),
+                python: Some(python.to_string()),
+                ..Default::default()
+            }
+        )
+    },
+
+    setuptools(
+        r"^Python-urllib/(?P<python>\d\.\d) setuptools/(?P<version>\S+)$",
+        r"^setuptools/(?P<version>\S+) Python-urllib/(?P<python>\d\.\d)$"
+    ) => |version, python| {
+        let installer = Installer {
+            name: Some("setuptools".to_string()),
+            version: Some(version.to_string()),
+        };
+
+        Some(
+            UserAgent {
+                installer: Some(installer),
+                python: Some(python.to_string()),
                 ..Default::default()
             }
         )
