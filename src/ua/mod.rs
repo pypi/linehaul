@@ -105,6 +105,10 @@ ua_parser!(
     z3c_pypimirror(r"^z3c\.pypimirror/(?P<version>\S+)$") => |version| {
         user_agent!(installer: installer!("z3c.pypimirror", version))
     },
+
+    artifactory(r"^Artifactory/(?P<version>\S+)$") => |version| {
+        user_agent!(installer: installer!("Artifactory", version))
+    },
 );
 
 pub fn parse(input: &str) -> Option<UserAgent> {
