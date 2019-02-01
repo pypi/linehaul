@@ -21,6 +21,15 @@ pub struct Implementation {
     pub version: Option<String>,
 }
 
+impl Default for Implementation {
+    fn default() -> Self {
+        Implementation {
+            name: None,
+            version: None,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LibC {
     pub lib: Option<String>,
@@ -50,6 +59,15 @@ impl Default for Distro {
 pub struct System {
     pub name: Option<String>,
     pub release: Option<String>,
+}
+
+impl Default for System {
+    fn default() -> Self {
+        System {
+            name: None,
+            release: None,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

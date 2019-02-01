@@ -75,6 +75,13 @@ macro_rules! installer {
 }
 
 #[macro_export]
+macro_rules! implementation {
+    ($($name:ident : $value:expr),* $(,)?) => {
+        Some(Implementation { $($name: $value),*, ..Default::default() })
+    };
+}
+
+#[macro_export]
 macro_rules! distro {
     ($($name:ident : $value:expr),* $(,)?) => {
         Some(Distro { $($name: $value),*, ..Default::default() })
@@ -82,8 +89,32 @@ macro_rules! distro {
 }
 
 #[macro_export]
+macro_rules! system {
+    ($($name:ident : $value:expr),* $(,)?) => {
+        Some(System { $($name: $value),*, ..Default::default() })
+    };
+}
+
+#[macro_export]
 macro_rules! user_agent {
     ($($name:ident : $value:expr),* $(,)?) => {
         Some(UserAgent { $($name: $value),*, ..Default::default() })
+    };
+}
+
+#[macro_export]
+macro_rules! lower {
+    ($name:ident) => {
+        $name.to_string().to_lowercase().as_ref()
+    };
+}
+
+#[macro_export]
+macro_rules! without_unknown {
+    ($name:ident) => {
+        match $name.to_string().to_lowercase().as_ref() {
+            "unknown" => None,
+            _ => Some($name.to_string()),
+        };
     };
 }

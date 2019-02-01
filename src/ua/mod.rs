@@ -28,38 +28,22 @@ ua_parser!(
     pip1_4(concat!(r"^pip/(?P<version>\S+) (?P<impl_name>\S+)/(?P<impl_version>\S+) ",
                    r"(?P<system_name>\S+)/(?P<system_release>\S+)$"))
             => |version, impl_name, impl_version, system_name, system_release| {
-        let implementation = Implementation {
-            name: match impl_name.to_string().to_lowercase().as_ref() {
-                "unknown" => None,
-                _ => sval(impl_name),
-            },
-            version: match impl_version.to_string().to_lowercase().as_ref() {
-                "unknown" => None,
-                _ => sval(impl_version),
-            },
-        };
-        let system = System {
-            name: match system_name.to_string().to_lowercase().as_ref() {
-                "unknown" => None,
-                _ => sval(system_name),
-            },
-            release: match system_release.to_string().to_lowercase().as_ref() {
-                "unknown" => None,
-                _ => sval(system_release),
-            },
-        };
-        let python = match &implementation.name {
-            Some(s) => match s.to_lowercase().as_ref() {
-                "cpython" => sval(impl_version),
-                _ => None,
-            },
-            None => None,
+
+        let python = match lower!(impl_name) {
+            "cpython" => sval(impl_version),
+            _ => None,
         };
 
         user_agent!(
             installer: installer!("pip", version),
-            implementation: Some(implementation),
-            system: Some(system),
+            implementation: implementation!(
+                name: without_unknown!(impl_name),
+                version: without_unknown!(impl_version),
+            ),
+            system: system!(
+                name: without_unknown!(system_name),
+                release: without_unknown!(system_release),
+            ),
             python: python,
         )
     },
