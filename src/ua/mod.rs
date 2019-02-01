@@ -67,10 +67,7 @@ ua_parser!(
                 implementation: Some(implementation),
                 system: Some(system),
                 python: python,
-                distro: None,
-                cpu: None,
-                openssl_version: None,
-                setuptools_version: None,
+                ..Default::default()
             }
         )
     }

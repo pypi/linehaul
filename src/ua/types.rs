@@ -43,3 +43,18 @@ pub struct UserAgent {
     pub openssl_version: Option<String>,
     pub setuptools_version: Option<String>,
 }
+
+impl Default for UserAgent {
+    fn default() -> Self {
+        UserAgent {
+            installer: None,
+            python: None,
+            implementation: None,
+            distro: None,
+            system: None,
+            cpu: None,
+            openssl_version: None,
+            setuptools_version: None,
+        }
+    }
+}
