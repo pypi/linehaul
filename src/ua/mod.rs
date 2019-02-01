@@ -113,6 +113,10 @@ ua_parser!(
     nexus(r"^Nexus/(?P<version>\S+)") => |version| {
         user_agent!(installer: installer!("Nexus", version))
     },
+
+    pep381client(r"^pep381client(?:-proxy)?/(?P<version>\S+)$") => |version| {
+        user_agent!(installer: installer!("pep381client", version))
+    },
 );
 
 pub fn parse(input: &str) -> Option<UserAgent> {
