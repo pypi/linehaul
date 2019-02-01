@@ -74,6 +74,12 @@ macro_rules! installer {
     };
 }
 
+#[macro_export]
+macro_rules! distro {
+    ($($name:ident : $value:expr),* $(,)?) => {
+        Some(Distro { $($name: $value),*, ..Default::default() })
+    };
+}
 
 #[macro_export]
 macro_rules! user_agent {

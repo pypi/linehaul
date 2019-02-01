@@ -32,6 +32,12 @@ pub struct Distro {
     pub libc: Option<LibC>,
 }
 
+impl Default for Distro {
+    fn default() -> Self {
+        Distro { name: None, version: None, id: None, libc: None }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct System {
     pub name: Option<String>,
