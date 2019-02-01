@@ -55,11 +55,8 @@ lazy_static! {
 
 ua_parser!(
     UserAgentParser,
-    pip6(r"^pip/\S+\s+(?P<data>.+)$") => |re, input| {
-        let caps = re.captures(input).unwrap();
-        let parsed = serde_json::from_str::<UserAgent>(&caps["data"]);
-
-        match parsed {
+    pip6(r"^pip/(?P<version>\S+)\s+(?P<data>.+)$") => |_version, data| {
+        match serde_json::from_str::<UserAgent>(data) {
             Ok(ua) => Some(ua),
             Err(_e) => None,
         }

@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! ua_parser {
-    ($parser:ident, $($name:ident($pattern:expr) => |$re:ident, $input:ident| $body:block),+) => {
+    ($parser:ident, $($name:ident($pattern:expr) => |$($param:ident),*| $body:block),+) => {
         struct $parser {
             regex: RegexSet,
             regexes: Vec<Regex>,
@@ -21,9 +21,13 @@ macro_rules! ua_parser {
             fn parse(&self, input: &str) -> Option<UserAgent> {
                 for match_ in self.regex.matches(input).iter() {
                     let re = &self.regexes[match_];
+                    let caps = re.captures(input).unwrap();
                     let func_name = &self.callbacks[match_];
+
                     let parsed = match func_name.as_ref() {
-                        $(stringify!($name) => $parser::$name(re, input)),*,
+                        $(stringify!($name) => {
+                            $parser::$name($(&caps[stringify!($param).trim_start_matches('_')]),*)
+                        }),*,
                         _ => {
                             panic!("Invalid callback");
                         }
@@ -38,7 +42,7 @@ macro_rules! ua_parser {
                 None
             }
 
-            $(fn $name($re: &Regex, $input: &str) -> Option<UserAgent> $body),*
+            $(fn $name($($param: &str),*) -> Option<UserAgent> $body),*
         }
     };
 }
