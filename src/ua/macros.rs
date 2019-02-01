@@ -59,8 +59,8 @@ macro_rules! ua_parser {
 macro_rules! installer {
     ($name:expr) => {
         Some(Installer {
-            name: $name,
-            ..Default::default()()
+            name: Some($name.to_string()),
+            ..Default::default()
         })
     };
 

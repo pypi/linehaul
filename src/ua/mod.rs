@@ -110,6 +110,22 @@ ua_parser!(
             distro: distro!(name: sval("OS X"), version: sval(osx_version)),
         )
     },
+
+    os(
+        r"^fetch libfetch/\S+$",
+        r"^libfetch/\S+$",
+        r"^OpenBSD ftp$",
+        r"^MacPorts/?",
+        r"^NetBSD-ftp/",
+        r"^slapt-get",
+        r"^pypi-install/",
+        r"^slackrepo$",
+        r"^PTXdist",
+        r"^GARstow/",
+        r"^xbps/",
+    ) => |,| {  // TODO: Figure out how to allow || instead of |,|
+        user_agent!(installer: installer!("OS"))
+    },
 );
 
 pub fn parse(input: &str) -> Option<UserAgent> {
