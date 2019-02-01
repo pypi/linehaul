@@ -89,6 +89,15 @@ ua_parser!(
                 ..Default::default()
             }
         )
+    },
+
+    pex(r"pex/(?P<version>\S+)$") => |version| {
+        Some(
+            UserAgent {
+                installer: installer!("pex", version),
+                ..Default::default()
+            }
+        )
     }
 );
 
