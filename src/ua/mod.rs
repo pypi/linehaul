@@ -126,6 +126,28 @@ ua_parser!(
     ) => |,| {  // TODO: Figure out how to allow || instead of |,|
         user_agent!(installer: installer!("OS"))
     },
+
+    browser(
+        r"^Python-urllib/\d\.\d$",
+        r"^python-requests/\S+(?: .+)?$",
+        r"(?i)Mozilla",
+        r"(?i)Safari",
+        r"(?i)wget",
+        r"(?i)curl",
+        r"(?i)Opera",
+        r"(?i)aria2",
+        r"(?i)AndroidDownloadManager",
+        r"(?i)com\.apple\.WebKit\.Networking/",
+        r"(?i)FDM \S+",
+        r"(?i)URL/Emacs",
+        r"(?i)Firefox/",
+        r"(?i)UCWEB",
+        r"(?i)Links",
+        r"(?i)^okhttp",
+        r"(?i)^Apache-HttpClient",
+    ) => |,| {
+        user_agent!(installer: installer!("Browser"))
+    },
 );
 
 pub fn parse(input: &str) -> Option<UserAgent> {
