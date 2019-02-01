@@ -85,6 +85,10 @@ ua_parser!(
     pex(r"pex/(?P<version>\S+)$") => |version| {
         user_agent!(installer: installer!("pex", version))
     },
+
+    conda(r"^conda/(?P<version>\S+)(?: .+)?$") => |version| {
+        user_agent!(installer: installer!("conda", version))
+    },
 );
 
 pub fn parse(input: &str) -> Option<UserAgent> {
