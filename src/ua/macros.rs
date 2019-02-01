@@ -13,7 +13,6 @@ macro_rules! ua_parser {
 
         impl $parser {
             fn new() -> $parser {
-                println!("new");
                 let patterns = vec![$($($pattern),+),*];
                 let regex = RegexSet::new(patterns).unwrap();
                 let mut regexes = HashMap::new();
