@@ -93,6 +93,10 @@ ua_parser!(
     bazel(r"^Bazel/(?:release\s+)?(?P<version>.+)$") => |version| {
         user_agent!(installer: installer!("Bazel", version))
     },
+
+    bandersnatch(r"^bandersnatch/(?P<version>\S+) \(.+\)$") => |version| {
+        user_agent!(installer: installer!("bandersnatch", version))
+    },
 );
 
 pub fn parse(input: &str) -> Option<UserAgent> {
