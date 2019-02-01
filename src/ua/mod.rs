@@ -101,6 +101,10 @@ ua_parser!(
     devpi(r"devpi-server/(?P<version>\S+) \(.+\)$") => |version| {
         user_agent!(installer: installer!("devpi", version))
     },
+
+    z3c_pypimirror(r"^z3c\.pypimirror/(?P<version>\S+)$") => |version| {
+        user_agent!(installer: installer!("z3c.pypimirror", version))
+    },
 );
 
 pub fn parse(input: &str) -> Option<UserAgent> {
