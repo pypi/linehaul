@@ -27,11 +27,8 @@ ua_parser!(
     },
 
     pip1_4(concat!(r"^pip/(?P<version>\S+) (?P<impl_name>\S+)/(?P<impl_version>\S+) ",
-                   r"(?P<system_name>\S+)/(?P<system_release>\S+)$")) => |version,
-                                                                          impl_name,
-                                                                          impl_version,
-                                                                          system_name,
-                                                                          system_release| {
+                   r"(?P<system_name>\S+)/(?P<system_release>\S+)$"))
+            => |version, impl_name, impl_version, system_name, system_release| {
         let installer = Installer {
             name: Some("pip".to_string()),
             version: Some(version.to_string()),
