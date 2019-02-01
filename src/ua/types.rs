@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Installer {
     pub name: Option<String>,
-    pub verison: Option<String>,
+    pub version: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

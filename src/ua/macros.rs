@@ -42,7 +42,7 @@ macro_rules! ua_parser {
                 None
             }
 
-            $(fn $name($($param: &str),*) -> Option<UserAgent> $body),*
+            $(fn $name($($param: &str),*) -> Option<UserAgent> $body)*
         }
     };
 }
