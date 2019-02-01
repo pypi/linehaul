@@ -97,6 +97,10 @@ ua_parser!(
     bandersnatch(r"^bandersnatch/(?P<version>\S+) \(.+\)$") => |version| {
         user_agent!(installer: installer!("bandersnatch", version))
     },
+
+    devpi(r"devpi-server/(?P<version>\S+) \(.+\)$") => |version| {
+        user_agent!(installer: installer!("devpi", version))
+    },
 );
 
 pub fn parse(input: &str) -> Option<UserAgent> {
