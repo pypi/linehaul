@@ -6,6 +6,12 @@ pub struct Installer {
     pub version: Option<String>,
 }
 
+impl Default for Installer {
+    fn default() -> Self {
+        Installer { name: None, version: None }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Implementation {
     pub name: Option<String>,

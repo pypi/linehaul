@@ -55,3 +55,21 @@ macro_rules! ua_parser {
         }
     };
 }
+
+
+#[macro_export]
+macro_rules! installer {
+    ($name:expr) => {
+        Some(Installer {name: $name, ..Default::default()()})
+    };
+
+    ($name:expr, $version:expr) => {
+        Some(
+            Installer {
+                name: Some($name.to_string()),
+                version: Some($version.to_string()),
+                ..Default::default()
+            }
+        )
+    };
+}

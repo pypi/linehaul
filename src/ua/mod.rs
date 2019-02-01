@@ -28,10 +28,6 @@ ua_parser!(
     pip1_4(concat!(r"^pip/(?P<version>\S+) (?P<impl_name>\S+)/(?P<impl_version>\S+) ",
                    r"(?P<system_name>\S+)/(?P<system_release>\S+)$"))
             => |version, impl_name, impl_version, system_name, system_release| {
-        let installer = Installer {
-            name: Some("pip".to_string()),
-            version: Some(version.to_string()),
-        };
         let implementation = Implementation {
             name: match impl_name.to_string().to_lowercase().as_ref() {
                 "unknown" => None,
@@ -62,7 +58,7 @@ ua_parser!(
 
         Some(
             UserAgent {
-                installer: Some(installer),
+                installer: installer!("pip", version),
                 implementation: Some(implementation),
                 system: Some(system),
                 python: python,
@@ -73,14 +69,9 @@ ua_parser!(
 
     distribute(r"^Python-urllib/(?P<python>\d\.\d) distribute/(?P<version>\S+)$")
             => |python, version| {
-        let installer = Installer {
-            name: Some("distribute".to_string()),
-            version: Some(version.to_string()),
-        };
-
         Some(
             UserAgent {
-                installer: Some(installer),
+                installer: installer!("distribute", version),
                 python: Some(python.to_string()),
                 ..Default::default()
             }
@@ -91,14 +82,9 @@ ua_parser!(
         r"^Python-urllib/(?P<python>\d\.\d) setuptools/(?P<version>\S+)$",
         r"^setuptools/(?P<version>\S+) Python-urllib/(?P<python>\d\.\d)$"
     ) => |version, python| {
-        let installer = Installer {
-            name: Some("setuptools".to_string()),
-            version: Some(version.to_string()),
-        };
-
         Some(
             UserAgent {
-                installer: Some(installer),
+                installer: installer!("setuptools", version),
                 python: Some(python.to_string()),
                 ..Default::default()
             }
