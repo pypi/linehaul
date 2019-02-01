@@ -109,6 +109,10 @@ ua_parser!(
     artifactory(r"^Artifactory/(?P<version>\S+)$") => |version| {
         user_agent!(installer: installer!("Artifactory", version))
     },
+
+    nexus(r"^Nexus/(?P<version>\S+)") => |version| {
+        user_agent!(installer: installer!("Nexus", version))
+    },
 );
 
 pub fn parse(input: &str) -> Option<UserAgent> {
