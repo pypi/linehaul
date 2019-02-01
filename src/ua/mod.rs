@@ -31,26 +31,26 @@ ua_parser!(
         let implementation = Implementation {
             name: match impl_name.to_string().to_lowercase().as_ref() {
                 "unknown" => None,
-                _ => Some(impl_name.to_string()),
+                _ => sval(impl_name),
             },
             version: match impl_version.to_string().to_lowercase().as_ref() {
                 "unknown" => None,
-                _ => Some(impl_version.to_string()),
+                _ => sval(impl_version),
             },
         };
         let system = System {
             name: match system_name.to_string().to_lowercase().as_ref() {
                 "unknown" => None,
-                _ => Some(system_name.to_string()),
+                _ => sval(system_name),
             },
             release: match system_release.to_string().to_lowercase().as_ref() {
                 "unknown" => None,
-                _ => Some(system_release.to_string()),
+                _ => sval(system_release),
             },
         };
         let python = match &implementation.name {
             Some(s) => match s.to_lowercase().as_ref() {
-                "cpython" => Some(impl_version.to_string()),
+                "cpython" => sval(impl_version),
                 _ => None,
             },
             None => None,
@@ -68,7 +68,7 @@ ua_parser!(
             => |python, version| {
         user_agent!(
             installer: installer!("distribute", version),
-            python: Some(python.to_string()),
+            python: sval(python),
         )
     },
 
@@ -78,7 +78,7 @@ ua_parser!(
     ) => |version, python| {
         user_agent!(
             installer: installer!("setuptools", version),
-            python: Some(python.to_string()),
+            python: sval(python),
         )
     },
 
@@ -123,11 +123,15 @@ ua_parser!(
             => |version, osx_version| {
         user_agent!(
             installer: installer!("Homebrew", version),
-            distro: distro!(name: Some("OS X".to_string()), version: Some(osx_version.to_string())),
+            distro: distro!(name: sval("OS X"), version: sval(osx_version)),
         )
     },
 );
 
 pub fn parse(input: &str) -> Option<UserAgent> {
     PARSER.parse(input)
+}
+
+fn sval(s: &str) -> Option<String> {
+    Some(s.to_string())
 }
