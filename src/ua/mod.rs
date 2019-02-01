@@ -148,6 +148,40 @@ ua_parser!(
     ) => |,| {
         user_agent!(installer: installer!("Browser"))
     },
+
+    // We keep the ignore case last, just in case that our ignore regexes overlap with
+    // one of our real regexes, this will make sure that ignore is the last thing we
+    // attempt.
+    ignore(
+        r"^Datadog Agent/",
+        r"^\(null\)$",
+        r"^WordPress/",
+        r"^Chef (?:Client|Knife)/",
+        r"^Ruby$",
+        r"^Slackbot-LinkExpanding",
+        r"^TextualInlineMedia/",
+        r"^WeeChat/",
+        r"^Download Master$",
+        r"^Java/",
+        r"^Go \d\.\d package http$",
+        r"^Go-http-client/",
+        r"^GNU Guile$",
+        r"^github-olee$",
+        r"^YisouSpider$",
+        r"^Apache Ant/",
+        r"^Salt/",
+        r"^ansible-httpget$",
+        r"^ltx71 - \(http://ltx71.com/\)",
+        r"^Scrapy/",
+        r"^spectool/",
+        r"Nutch",
+        r"^AWSBrewLinkChecker/",
+        r"^Y!J-ASR/",
+        r"^NSIS_Inetc \(Mozilla\)$",
+        r"^Debian uscan",
+        r"^Pingdom\.com_bot_version_\d+\.\d+_\(https?://www.pingdom.com/\)$",
+        r"^MauiBot \(crawler\.feedback\+dc@gmail\.com\)$",
+    ) => |,| { None },
 );
 
 pub fn parse(input: &str) -> Option<UserAgent> {
