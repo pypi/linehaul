@@ -56,25 +56,19 @@ ua_parser!(
             None => None,
         };
 
-        Some(
-            UserAgent {
-                installer: installer!("pip", version),
-                implementation: Some(implementation),
-                system: Some(system),
-                python: python,
-                ..Default::default()
-            }
+        user_agent!(
+            installer: installer!("pip", version),
+            implementation: Some(implementation),
+            system: Some(system),
+            python: python,
         )
     },
 
     distribute(r"^Python-urllib/(?P<python>\d\.\d) distribute/(?P<version>\S+)$")
             => |python, version| {
-        Some(
-            UserAgent {
-                installer: installer!("distribute", version),
-                python: Some(python.to_string()),
-                ..Default::default()
-            }
+        user_agent!(
+            installer: installer!("distribute", version),
+            python: Some(python.to_string()),
         )
     },
 
@@ -82,22 +76,14 @@ ua_parser!(
         r"^Python-urllib/(?P<python>\d\.\d) setuptools/(?P<version>\S+)$",
         r"^setuptools/(?P<version>\S+) Python-urllib/(?P<python>\d\.\d)$"
     ) => |version, python| {
-        Some(
-            UserAgent {
-                installer: installer!("setuptools", version),
-                python: Some(python.to_string()),
-                ..Default::default()
-            }
+        user_agent!(
+            installer: installer!("setuptools", version),
+            python: Some(python.to_string()),
         )
     },
 
     pex(r"pex/(?P<version>\S+)$") => |version| {
-        Some(
-            UserAgent {
-                installer: installer!("pex", version),
-                ..Default::default()
-            }
-        )
+        user_agent!(installer: installer!("pex", version))
     }
 );
 

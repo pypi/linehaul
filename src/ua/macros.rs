@@ -73,3 +73,11 @@ macro_rules! installer {
         )
     };
 }
+
+
+#[macro_export]
+macro_rules! user_agent {
+    ($($name:ident : $value:expr),* $(,)?) => {
+        Some(UserAgent { $($name: $value),*, ..Default::default() })
+    };
+}
