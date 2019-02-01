@@ -74,7 +74,7 @@ ua_parser!(
 
     setuptools(
         r"^Python-urllib/(?P<python>\d\.\d) setuptools/(?P<version>\S+)$",
-        r"^setuptools/(?P<version>\S+) Python-urllib/(?P<python>\d\.\d)$"
+        r"^setuptools/(?P<version>\S+) Python-urllib/(?P<python>\d\.\d)$",
     ) => |version, python| {
         user_agent!(
             installer: installer!("setuptools", version),
@@ -84,7 +84,7 @@ ua_parser!(
 
     pex(r"pex/(?P<version>\S+)$") => |version| {
         user_agent!(installer: installer!("pex", version))
-    }
+    },
 );
 
 pub fn parse(input: &str) -> Option<UserAgent> {

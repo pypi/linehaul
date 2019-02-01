@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! ua_parser {
-    ($parser:ident, $($name:ident($($pattern:expr),+) => |$($param:ident),*| $body:block),+) => {
+    ($parser:ident, $($name:ident($($pattern:expr),+ $(,)?) => |$($param:ident),* $(,)?| $body:block),+ $(,)?) => {
         use std::collections::HashMap;
 
         use regex::{Regex, RegexSet};
