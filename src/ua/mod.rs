@@ -1,7 +1,7 @@
 use regex::{Regex, RegexSet};
 use serde_json;
 
-pub use types::{UserAgent};
+pub use types::UserAgent;
 
 #[macro_use]
 mod macros;
