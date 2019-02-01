@@ -1,6 +1,5 @@
 use std::str;
 
-use log::info;
 use simple::parse_v3 as parse_simple_v3;
 pub use simple::SimpleRequest;
 
@@ -12,7 +11,10 @@ pub enum Event {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct EventParseError(());
+pub enum EventParseError {
+    IgnoredUserAgent,
+    Error,
+}
 
 impl str::FromStr for Event {
     type Err = EventParseError;
@@ -21,14 +23,9 @@ impl str::FromStr for Event {
         match parse(s) {
             Ok(p) => match p.1 {
                 Some(e) => Ok(e),
-                // TODO: Replace with a different Error that signals to skip this
-                //       entry, rather than the same as a failure to parse.
-                None => Err(EventParseError(())),
+                None => Err(EventParseError::IgnoredUserAgent),
             },
-            Err(e) => {
-                info!("{:?}", e);
-                Err(EventParseError(()))
-            }
+            Err(e) => Err(EventParseError::Error),
         }
     }
 }

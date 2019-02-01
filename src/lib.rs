@@ -9,7 +9,7 @@ extern crate lazy_static;
 extern crate nom;
 
 use flate2::read::GzDecoder;
-use log::{error, warn};
+use log::{debug, error, warn};
 
 mod events;
 mod syslog;
@@ -29,8 +29,16 @@ pub fn process<'a>(lines: impl Iterator<Item = &'a str>) {
         // Parse the log entry as an event.
         let _event: events::Event = match message.message.parse() {
             Ok(e) => e,
-            Err(_e) => {
-                error!("Could not parse '{:?}' as an event.", message.message);
+            Err(e) => {
+                match e {
+                    events::EventParseError::IgnoredUserAgent => {
+                        debug!("Skipping {:?}.", message.message)
+                    }
+                    events::EventParseError::Error => {
+                        error!("Could not parse '{:?}' as an event.", message.message)
+                    }
+                };
+
                 continue;
             }
         };
