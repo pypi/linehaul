@@ -25,7 +25,7 @@ impl str::FromStr for Event {
                 Some(e) => Ok(e),
                 None => Err(EventParseError::IgnoredUserAgent),
             },
-            Err(e) => Err(EventParseError::Error),
+            Err(_e) => Err(EventParseError::Error),
         }
     }
 }
