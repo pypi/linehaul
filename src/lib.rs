@@ -21,7 +21,7 @@ pub fn process<'a>(lines: impl Iterator<Item = &'a str>) {
         let message: syslog::SyslogMessage = match line.parse() {
             Ok(m) => m,
             Err(_e) => {
-                error!("Could not parse '{:?}' as a syslog message.", line);
+                error!("Could not parse {:?} as a syslog message.", line);
                 continue;
             }
         };
@@ -35,7 +35,7 @@ pub fn process<'a>(lines: impl Iterator<Item = &'a str>) {
                         debug!("Skipping {:?}.", message.message)
                     }
                     events::EventParseError::Error => {
-                        error!("Could not parse '{:?}' as an event.", message.message)
+                        error!("Could not parse {:?} as an event.", message.message)
                     }
                 };
 
@@ -64,7 +64,8 @@ pub fn process_reader(file: impl Read) -> Result<(), Box<dyn Error>> {
                 );
                 None
             }
-        });
+        })
+        .filter(|i| i.len() > 0);
 
     process(lines);
 
