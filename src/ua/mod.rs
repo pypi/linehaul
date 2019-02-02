@@ -158,7 +158,7 @@ ua_parser!(
     },
 
     browser(
-        r"^Python-urllib/\d\.\d$",
+        r"^Python-urllib/\d+\.\d+$",
         r"^python-requests/\S+(?: .+)?$",
         r"(?i)Mozilla",
         r"(?i)Safari",
@@ -175,6 +175,7 @@ ua_parser!(
         r"(?i)Links",
         r"(?i)^okhttp",
         r"(?i)^Apache-HttpClient",
+        r"^excon/",
     ) => |,| {
         user_agent!(installer: installer!("Browser"))
     },
@@ -211,6 +212,8 @@ ua_parser!(
         r"^Debian uscan",
         r"^Pingdom\.com_bot_version_\d+\.\d+_\(https?://www.pingdom.com/\)$",
         r"^MauiBot \(crawler\.feedback\+dc@gmail\.com\)$",
+        r"^smartiproxy",
+        r"^Apache-Maven/",
     ) => |,| { IOption::Ignored },
 );
 
