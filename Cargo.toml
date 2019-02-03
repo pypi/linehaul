@@ -3,15 +3,21 @@ name = "linehaul"
 version = "0.1.0"
 authors = ["Donald Stufft <donald@stufft.io>"]
 edition = "2018"
+build = "build.rs"
 
+[build-dependencies]
+built = "0.3"
 
 [dependencies]
 lambda_runtime = "0.1"
 aws_lambda_events = "0.2.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
-log = "0.4"
-simple_logger = "1"
+slog = { version = "2.4.1", features = ["max_level_trace", "release_max_level_info"] }
+slog-async = "2.3.0"
+slog-bunyan = "2.1.0"
+slog-envlogger = "2.1.0"
+slog-term = "2.4.0"
 rusoto_core = "0.36.0"
 rusoto_s3 = "0.36.0"
 openssl = { version = "0.10", features = ["vendored"] }

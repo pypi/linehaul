@@ -5,22 +5,18 @@ use aws_lambda_events::event::s3::{S3Event, S3EventRecord};
 use aws_lambda_events::event::sqs::SqsEvent;
 use backoff::{Error as BackoffError, ExponentialBackoff, Operation};
 use lambda_runtime::{error::HandlerError, lambda, Context};
-use log::{error, warn};
 use rusoto_core::Region;
 use rusoto_s3::{DeleteObjectRequest, GetObjectError, GetObjectRequest, S3Client, S3};
 use serde_json;
-use simple_logger;
+use slog;
+use slog::{error, o, warn};
 
-fn process_event(event: &S3EventRecord) -> Result<(), Box<dyn Error>> {
+fn process_event(logger: &slog::Logger, event: &S3EventRecord) -> Result<(), Box<dyn Error>> {
     let region = event
         .aws_region
         .as_ref()
         .ok_or("No region specified.".to_owned())?
         .parse::<Region>()?;
-    // TODO: Cache our clients by region, so we don't have to constantly
-    //       reopen new connections.
-    let client = S3Client::new(region);
-
     let bucket = event
         .s3
         .bucket
@@ -36,6 +32,13 @@ fn process_event(event: &S3EventRecord) -> Result<(), Box<dyn Error>> {
         .ok_or("No Key specified.".to_owned())?
         .to_string();
 
+    let logger = logger.new(o!("region" => region.name().to_string(),
+                               "bucket" => bucket.clone(),
+                               "key" => key.clone()));
+
+    // TODO: Cache our clients by region, so we don't have to constantly
+    //       reopen new connections.
+    let client = S3Client::new(region);
     let mut op = || {
         let output = client
             .get_object(GetObjectRequest {
@@ -56,8 +59,11 @@ fn process_event(event: &S3EventRecord) -> Result<(), Box<dyn Error>> {
         max_elapsed_time: Some(time::Duration::from_secs(60)),
         ..Default::default()
     };
-    let output = match op.retry_notify(&mut backoff, |err, dur| {
-        warn!("Error occured fetching {:?} at {:?}: {}", key, dur, err)
+    let output = match op.retry_notify(&mut backoff, |err: GetObjectError, dur: time::Duration| {
+        warn!(logger,
+              "could not fetch object from s3";
+              "duration" => format!("{:?}", dur),
+              "error" => err.to_string());
     }) {
         Ok(o) => o,
         // This gnarly chain is here to make it so errors generally get returned,
@@ -73,7 +79,7 @@ fn process_event(event: &S3EventRecord) -> Result<(), Box<dyn Error>> {
 
     match output.body {
         Some(b) => {
-            linehaul::process_reader(b.into_blocking_read())?;
+            linehaul::process_reader(&logger, b.into_blocking_read())?;
 
             client
                 .delete_object(DeleteObjectRequest {
@@ -84,7 +90,7 @@ fn process_event(event: &S3EventRecord) -> Result<(), Box<dyn Error>> {
                 .sync()?;
         }
         None => {
-            error!("No body found for {:?}.", key);
+            error!(logger, "no body found");
         }
     }
 
@@ -92,18 +98,28 @@ fn process_event(event: &S3EventRecord) -> Result<(), Box<dyn Error>> {
 }
 
 fn handler(e: SqsEvent, _c: Context) -> Result<(), HandlerError> {
+    let logger = linehaul::default_logger(linehaul::LogStyle::JSON);
+
     for message in &e.records {
         if let Some(body) = &message.body {
             let res: serde_json::Result<S3Event> = serde_json::from_str(&body);
             match res {
                 Ok(e) => {
                     for event in &e.records {
-                        if let Err(e) = process_event(event) {
-                            error!("Could not process S3 event ({:?}: {:?}", e, event);
+                        if let Err(e) = process_event(&logger, event) {
+                            error!(logger,
+                                   "unable to process s3 event";
+                                   "error" => e.to_string(),
+                                   "event" => serde_json::to_string(event).unwrap());
                         }
                     }
                 }
-                Err(e) => error!("Could not parse SQS Body ({:?}): {:?}", e, body),
+                Err(e) => {
+                    error!(logger,
+                           "unable to parse SQS body";
+                           "error" => e.to_string(),
+                           "body" => body.to_string());
+                }
             }
         }
     }
@@ -111,10 +127,6 @@ fn handler(e: SqsEvent, _c: Context) -> Result<(), HandlerError> {
     Ok(())
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    simple_logger::init_with_level(log::Level::Info)?;
-
-    lambda!(handler);
-
-    Ok(())
+fn main() {
+    lambda!(handler)
 }
