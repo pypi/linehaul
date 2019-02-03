@@ -2,6 +2,8 @@ use std::error;
 use std::fmt;
 
 use serde_json;
+use slog::slog_error;
+use slog_scope::error;
 
 pub use types::{Distro, Implementation, Installer, LibC, System, UserAgent};
 

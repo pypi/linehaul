@@ -48,6 +48,8 @@ macro_rules! ua_parser {
                     };
                 }
 
+                error!("invalid user agent"; "user_agent" => input);
+
                 Err(UserAgentParseError{ua: input.to_string()})
             }
 

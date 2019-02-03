@@ -17,6 +17,7 @@ slog = { version = "2.4.1", features = ["max_level_trace", "release_max_level_in
 slog-async = "2.3.0"
 slog-bunyan = "2.1.0"
 slog-envlogger = "2.1.0"
+slog-scope = "4.1.1"
 slog-term = "2.4.0"
 rusoto_core = "0.36.0"
 rusoto_s3 = "0.36.0"

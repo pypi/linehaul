@@ -12,9 +12,11 @@ extern crate nom;
 
 use flate2::read::GzDecoder;
 use slog;
-use slog::{error, o, trace, warn, Drain};
+use slog::{o, slog_error, slog_trace, slog_warn, Drain};
 use slog_async;
 use slog_envlogger;
+use slog_scope;
+use slog_scope::{error, trace, warn};
 use slog_term;
 
 mod events;
@@ -61,43 +63,48 @@ pub fn default_logger(style: LogStyle) -> slog::Logger {
     }
 }
 
-pub fn process<'a>(logger: &slog::Logger, lines: impl Iterator<Item = &'a str>) {
+fn process_event(raw_event: &str) -> Option<events::Event> {
+    match raw_event.parse::<events::Event>() {
+        Ok(e) => Some(e),
+        Err(e) => {
+            match e {
+                events::EventParseError::IgnoredUserAgent => {
+                    trace!("skipping for ignored user agent");
+                }
+                events::EventParseError::InvalidUserAgent => {
+                    trace!("skipping for invalid user agent");
+                }
+                events::EventParseError::Error => {
+                    error!("invalid event");
+                }
+            };
+
+            None
+        }
+    }
+}
+
+pub fn process<'a>(lines: impl Iterator<Item = &'a str>) {
     for line in lines {
         // Parse each line as a syslog message.
         let message: syslog::SyslogMessage = match line.parse() {
             Ok(m) => m,
             Err(_e) => {
-                error!(logger,
-                       "could not parse as syslog message";
+                error!("could not parse as syslog message";
                        "line" => line);
                 continue;
             }
         };
 
         // Parse the log entry as an event.
-        let logger = logger.new(o!("raw_event" => message.message.clone()));
-        let _event: events::Event = match message.message.parse() {
-            Ok(e) => e,
-            Err(e) => {
-                match e {
-                    events::EventParseError::IgnoredUserAgent => {
-                        trace!(logger, "skipping for ignored user agent");
-                    }
-                    events::EventParseError::InvalidUserAgent => {
-                        error!(logger, "invalid user agent");
-                    }
-                    events::EventParseError::Error => {
-                        error!(logger, "invalid event");
-                    }
-                };
-
-                continue;
-            }
-        };
+        let _event = slog_scope::scope(
+            &slog_scope::logger().new(o!("raw_event" => message.message.clone())),
+            || process_event(message.message.as_ref()),
+        );
     }
 }
 
-pub fn process_reader(logger: &slog::Logger, file: impl Read) -> Result<(), Box<dyn Error>> {
+pub fn process_reader(file: impl Read) -> Result<(), Box<dyn Error>> {
     let mut gz = GzDecoder::new(file);
     let mut buffer = Vec::new();
 
@@ -109,16 +116,15 @@ pub fn process_reader(logger: &slog::Logger, file: impl Read) -> Result<(), Box<
         .filter_map(|line| match str::from_utf8(line) {
             Ok(l) => Some(l),
             Err(e) => {
-                warn!(logger,
-                    "skipping invalid line";
-                    "line" => String::from_utf8_lossy(line).as_ref(),
-                    "error" => e.to_string());
+                warn!("skipping invalid line";
+                      "line" => String::from_utf8_lossy(line).as_ref(),
+                      "error" => e.to_string());
                 None
             }
         })
         .filter(|i| i.len() > 0);
 
-    process(logger, lines);
+    process(lines);
 
     Ok(())
 }
