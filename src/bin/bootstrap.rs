@@ -4,6 +4,8 @@ use std::time;
 use aws_lambda_events::event::s3::{S3Event, S3EventRecord};
 use aws_lambda_events::event::sqs::SqsEvent;
 use backoff::{Error as BackoffError, ExponentialBackoff, Operation};
+use base64;
+use clap::{App, Arg};
 use lambda_runtime::{error::HandlerError, lambda, Context};
 use rusoto_core::Region;
 use rusoto_s3::{DeleteObjectRequest, GetObjectError, GetObjectRequest, S3Client, S3};
@@ -13,7 +15,7 @@ use slog::{o, slog_error, slog_warn};
 use slog_scope;
 use slog_scope::{error, warn};
 
-fn process_event(event: &S3EventRecord) -> Result<(), Box<dyn Error>> {
+fn process_event(bq: &mut linehaul::BigQuery, event: &S3EventRecord) -> Result<(), Box<dyn Error>> {
     let region = event
         .aws_region
         .as_ref()
@@ -82,7 +84,7 @@ fn process_event(event: &S3EventRecord) -> Result<(), Box<dyn Error>> {
 
             match output.body {
                 Some(b) => {
-                    linehaul::process_reader(b.into_blocking_read())?;
+                    linehaul::process_reader(bq, b.into_blocking_read())?;
 
                     client
                         .delete_object(DeleteObjectRequest {
@@ -103,13 +105,47 @@ fn process_event(event: &S3EventRecord) -> Result<(), Box<dyn Error>> {
 }
 
 fn handler(e: SqsEvent, _c: Context) -> Result<(), HandlerError> {
+    let matches = App::new("linehaul")
+        .version(linehaul::build_info::PKG_VERSION)
+        .author(linehaul::build_info::PKG_AUTHORS)
+        .about(linehaul::build_info::PKG_DESCRIPTION)
+        .arg(
+            Arg::with_name("bigquery-credentials")
+                .env("BIGQUERY_CREDENTIALS")
+                .value_name("BLOB")
+                .help("A Base64 encoded blob of credentials")
+                .required(true)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("simple-requests-table")
+                .env("SIMPLE_REQUESTS_TABLE")
+                .value_name("PROJECT.DATASET.TABLE")
+                .help("Sets the target destination for simple request events")
+                .required(true)
+                .takes_value(true),
+        )
+        .get_matches();
+
+    let creds = String::from_utf8(
+        base64::decode_config(
+            matches.value_of("bigquery-credentials").unwrap(),
+            base64::URL_SAFE,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    // TODO: Add this to current context.
+    let simple_requests_table = matches.value_of("simple-requests-table").unwrap();
+    let mut bq = linehaul::BigQuery::new(simple_requests_table, creds.as_ref()).unwrap();
+
     for message in &e.records {
         if let Some(body) = &message.body {
             let res: serde_json::Result<S3Event> = serde_json::from_str(&body);
             match res {
                 Ok(e) => {
                     for event in &e.records {
-                        if let Err(e) = process_event(event) {
+                        if let Err(e) = process_event(&mut bq, event) {
                             error!("unable to process s3 event";
                                    "error" => e.to_string(),
                                    "event" => serde_json::to_string(event).unwrap());

@@ -11,8 +11,14 @@ built = "0.3"
 [dependencies]
 aws_lambda_events = "0.2.1"
 backoff = "0.1.2"
+base64 = "0.10.1"
 chrono = "0.4"
+clap = "2.32.0"
+erased-serde = "0.3"
 flate2 = "1.0"
+hyper = "^0.10"
+hyper-native-tls = "0.3.0"
+itertools = "0.8.0"
 lambda_runtime = "0.1"
 lazy_static = "1.2.0"
 nom = "4.1"
@@ -30,6 +36,9 @@ slog-bunyan = "2.1.0"
 slog-envlogger = "2.1.0"
 slog-scope = "4.1.1"
 slog-term = "2.4.0"
+url = "1.7.2"
+uuid = { version = "0.7", features = ["serde", "v4"] }
+yup-oauth2 = "^1.0"
 
 [profile.release]
 lto = true

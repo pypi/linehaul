@@ -11,6 +11,7 @@ extern crate lazy_static;
 extern crate nom;
 
 use flate2::read::GzDecoder;
+use itertools::Itertools;
 use slog;
 use slog::{o, slog_error, slog_trace, slog_warn, Drain};
 use slog_async;
@@ -19,14 +20,19 @@ use slog_scope;
 use slog_scope::{error, trace, warn};
 use slog_term;
 
+mod bigquery;
 mod events;
 mod syslog;
 mod ua;
 
+pub use bigquery::BigQuery;
+
 #[allow(dead_code)]
-mod build {
+pub mod build_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
+
+const BATCH_SIZE: usize = 500;
 
 pub enum LogStyle {
     JSON,
@@ -38,7 +44,7 @@ pub fn default_logger(style: LogStyle) -> slog::Logger {
         Ok(s) => s.to_string(),
         Err(_e) => "debug".to_string(),
     };
-    let kv = o!("version" => build::PKG_VERSION, "commit" => build::GIT_VERSION);
+    let kv = o!("version" => build_info::PKG_VERSION, "commit" => build_info::GIT_VERSION);
 
     match style {
         LogStyle::JSON => {
@@ -59,6 +65,16 @@ pub fn default_logger(style: LogStyle) -> slog::Logger {
             let drain = slog_async::Async::new(drain).build().fuse();
 
             slog::Logger::root(drain, kv)
+        }
+    }
+}
+
+fn parse_syslog(line: &str) -> Option<syslog::SyslogMessage> {
+    match line.parse() {
+        Ok(m) => Some(m),
+        Err(_e) => {
+            error!("could not parse as syslog message");
+            None
         }
     }
 }
@@ -84,27 +100,40 @@ fn process_event(raw_event: &str) -> Option<events::Event> {
     }
 }
 
-pub fn process<'a>(lines: impl Iterator<Item = &'a str>) {
-    for line in lines {
-        // Parse each line as a syslog message.
-        let message: syslog::SyslogMessage = match line.parse() {
-            Ok(m) => m,
-            Err(_e) => {
-                error!("could not parse as syslog message";
-                       "line" => line);
-                continue;
-            }
-        };
+pub fn process<'a>(bq: &mut BigQuery, lines: impl Iterator<Item = &'a str>) {
+    let messages = lines.filter_map(|line| {
+        slog_scope::scope(
+            &slog_scope::logger().new(o!("line" => line.to_string())),
+            || parse_syslog(line),
+        )
+    });
+    let events = messages.filter_map(|msg| {
+        slog_scope::scope(
+            &slog_scope::logger().new(o!("raw_event" => msg.message.clone())),
+            || process_event(msg.message.as_ref()),
+        )
+    });
 
-        // Parse the log entry as an event.
-        let _event = slog_scope::scope(
-            &slog_scope::logger().new(o!("raw_event" => message.message.clone())),
-            || process_event(message.message.as_ref()),
-        );
+    for batch in events.peekable().batching(|it| match it.peek() {
+        Some(_i) => Some(it.take(BATCH_SIZE).collect()),
+        None => None,
+    }) {
+        let batch: Vec<events::Event> = batch;
+        let batch = batch
+            .iter()
+            .map(|i| match i {
+                events::Event::SimpleRequest(e) => e,
+            })
+            .collect();
+
+        // TODO: Wrap in slog_scope.
+        if let Err(e) = bq.insert(batch) {
+            error!("error saving batch to BigQuery"; "error" => e.to_string());
+        }
     }
 }
 
-pub fn process_reader(file: impl Read) -> Result<(), Box<dyn Error>> {
+pub fn process_reader(bq: &mut BigQuery, file: impl Read) -> Result<(), Box<dyn Error>> {
     let mut gz = GzDecoder::new(file);
     let mut buffer = Vec::new();
 
@@ -124,7 +153,7 @@ pub fn process_reader(file: impl Read) -> Result<(), Box<dyn Error>> {
         })
         .filter(|i| i.len() > 0);
 
-    process(lines);
+    process(bq, lines);
 
     Ok(())
 }

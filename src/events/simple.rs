@@ -1,9 +1,10 @@
 use chrono::{DateTime, TimeZone, Utc};
 use nom::{rest, space, take_until, take_while_m_n, Context, Err as NomErr, ErrorKind};
+use serde::{Deserialize, Serialize};
 
 use super::super::ua;
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SimpleRequest {
     pub timestamp: DateTime<Utc>,
     pub url: String,
