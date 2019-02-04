@@ -141,7 +141,6 @@ pub fn process_reader(bq: &mut BigQuery, file: impl Read) -> Result<(), Box<dyn 
 
     let lines = buffer
         .split(|c| c == &b'\n')
-        .into_iter()
         .filter_map(|line| match str::from_utf8(line) {
             Ok(l) => Some(l),
             Err(e) => {
@@ -151,7 +150,7 @@ pub fn process_reader(bq: &mut BigQuery, file: impl Read) -> Result<(), Box<dyn 
                 None
             }
         })
-        .filter(|i| i.len() > 0);
+        .filter(|i| !i.is_empty());
 
     process(bq, lines);
 

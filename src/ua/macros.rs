@@ -71,7 +71,6 @@ macro_rules! installer {
         Some(Installer {
             name: Some($name.to_string()),
             version: Some($version.to_string()),
-            ..Default::default()
         })
     };
 }

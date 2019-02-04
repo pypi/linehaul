@@ -108,7 +108,7 @@ named!(pub parse_v3 <&str, Option<SimpleRequest>>,
     >> ({
             let country_code = country_code.to_string();
             let url = url.to_string();
-            let project = match url.split("/").nth(2) {
+            let project = match url.split('/').nth(2) {
                 Some(s) => s.to_string(),
                 None => panic!("Couldn't split this string")  // TODO: Real Error
             };

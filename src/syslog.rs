@@ -104,13 +104,13 @@ named!(iso8601 <&str, DateTime<Utc>>,
 );
 
 named!(hostname <&str, Option<&str>>,
-    alt!(nil_str | map!(take_until!(" "), |i| Some(i)))
+    alt!(nil_str | map!(take_until!(" "), Some))
 );
 
 named!(appname <&str, &str>, take_until!("["));
 
 named!(procid <&str, Option<&str>>,
-    alt!(nil_str | map!(take_until!("]"), |i| Some(i)))
+    alt!(nil_str | map!(take_until!("]"), Some))
 );
 
 named!(parse <&str, SyslogMessage>,
