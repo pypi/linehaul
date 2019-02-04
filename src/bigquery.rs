@@ -8,8 +8,8 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_native_tls;
 use serde::{Deserialize, Serialize};
 use serde_json as json;
-use slog::slog_debug;
-use slog_scope::debug;
+use slog::{slog_debug, slog_warn};
+use slog_scope::{debug, warn};
 use url;
 use uuid::Uuid;
 use yup_oauth2::{GetToken, ServiceAccountAccess, ServiceAccountKey};
@@ -189,7 +189,10 @@ impl BigQuery {
                     Err(_e) => panic!("wat!"),
                 }
             }
-            _ => panic!("five"),
+            _ => {
+                warn!("unexpected status code from BigQuery"; "status_code" => resp.status.to_string());
+                panic!("five");
+            }
         };
 
         debug!("inserted batch into bigquery";
