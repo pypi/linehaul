@@ -25,7 +25,7 @@ macro_rules! read_body {
         let mut body = String::new();
         let result = $resp.read_to_string(&mut body).map_err(|_e| BigQueryError {
             message: "IO error reading response body".to_string(),
-            status: $resp.status,
+            status: Some($resp.status),
             body: None,
             retryable: $retryable,
         });
@@ -101,9 +101,20 @@ struct TableInsertResponse {
 #[derive(Debug, Clone)]
 pub struct BigQueryError {
     pub message: String,
-    pub status: StatusCode,
+    pub status: Option<StatusCode>,
     pub body: Option<String>,
     retryable: bool,
+}
+
+impl Default for BigQueryError {
+    fn default() -> BigQueryError {
+        BigQueryError {
+            message: String::new(),
+            status: None,
+            body: None,
+            retryable: true,
+        }
+    }
 }
 
 impl fmt::Display for BigQueryError {
@@ -198,7 +209,7 @@ impl BigQuery {
         .map_err(BigQueryError::from)
         .or_else(|e| {
             let message = e.message.clone();
-            let status = e.status.to_string();
+            let status = e.status.and_then(|s| Some(s.to_string()));
             let body = e.body.clone();
             error!("{}", message; "status" => status, "body" => body);
 
@@ -223,7 +234,7 @@ impl BigQuery {
         let body = json::to_string(&data).unwrap();
 
         let token = self.auth.token(&BIGQUERY_SCOPES).unwrap();
-        let mut resp = match self
+        let mut resp = self
             .client
             .post(url)
             .header(Authorization(Bearer {
@@ -236,20 +247,48 @@ impl BigQuery {
             )))
             .body(&body)
             .send()
-        {
-            Ok(r) => r,
-            Err(e) => match e {
-                hyper::Error::Io(e) => panic!("one"),
-                hyper::Error::Ssl(e) => panic!("two"),
-                hyper::Error::Utf8(e) => panic!("three"),
-                _ => panic!("four"),
-            },
-        };
+            .map_err(|e| match &e {
+                hyper::Error::Method
+                | hyper::Error::Version
+                | hyper::Error::Status
+                | hyper::Error::Header => BigQueryError {
+                    message: format!("invalid {}", e.to_string()),
+                    retryable: false,
+                    ..Default::default()
+                },
+                hyper::Error::Uri(e) => BigQueryError {
+                    message: format!("invalid uri: {}", e.to_string()),
+                    retryable: false,
+                    ..Default::default()
+                },
+                hyper::Error::Utf8(e) => BigQueryError {
+                    message: format!("invalid data: {}", e.to_string()),
+                    retryable: false,
+                    ..Default::default()
+                },
+                hyper::Error::TooLarge => BigQueryError {
+                    message: "response size too large".to_string(),
+                    retryable: false,
+                    ..Default::default()
+                },
+                hyper::Error::Io(e) => BigQueryError {
+                    message: format!("i/o error occured: {}", e.to_string()),
+                    ..Default::default()
+                },
+                hyper::Error::Ssl(e) => BigQueryError {
+                    message: format!("ssl error occured: {}", e.to_string()),
+                    ..Default::default()
+                },
+                _ => BigQueryError {
+                    message: "unknown error".to_string(),
+                    ..Default::default()
+                },
+            })?;
 
         let resp = match resp.status.class() {
             StatusClass::Informational => Err(BigQueryError {
                 message: "unexpected 1xx response".to_string(),
-                status: resp.status,
+                status: Some(resp.status),
                 body: read_body!(resp).ok(),
                 retryable: true,
             }),
@@ -258,39 +297,39 @@ impl BigQuery {
                     Ok(p) => Ok(p),
                     Err(_e) => Err(BigQueryError {
                         message: "invalid json response".to_string(),
-                        status: resp.status,
+                        status: Some(resp.status),
                         body: Some(body),
                         retryable: true,
                     }),
                 },
                 _ => Err(BigQueryError {
                     message: "invalid response body".to_string(),
-                    status: resp.status,
+                    status: Some(resp.status),
                     body: None,
                     retryable: true,
                 }),
             },
             StatusClass::Redirection => Err(BigQueryError {
                 message: "unexpected redirect".to_string(),
-                status: resp.status,
+                status: Some(resp.status),
                 body: read_body!(resp).ok(),
                 retryable: false,
             }),
             StatusClass::ClientError => Err(BigQueryError {
                 message: "client error".to_string(),
-                status: resp.status,
+                status: Some(resp.status),
                 body: read_body!(resp).ok(),
                 retryable: false,
             }),
             StatusClass::ServerError => Err(BigQueryError {
                 message: "server error".to_string(),
-                status: resp.status,
+                status: Some(resp.status),
                 body: read_body!(resp).ok(),
                 retryable: true,
             }),
             StatusClass::NoClass => Err(BigQueryError {
                 message: "unknown status code".to_string(),
-                status: resp.status,
+                status: Some(resp.status),
                 body: read_body!(resp).ok(),
                 retryable: true,
             }),
