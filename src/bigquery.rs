@@ -158,14 +158,14 @@ impl BigQuery {
     pub fn new(table: &str, key: &str) -> Result<BigQuery, Box<dyn Error>> {
         let split = table.split('.').collect::<Vec<&str>>();
         let table = if let [project, dataset, table] = &split[..] {
-            BigQueryTable {
+            Ok(BigQueryTable {
                 project: project.to_string(),
                 dataset: dataset.to_string(),
                 table: table.to_string(),
-            }
+            })
         } else {
-            panic!("nope");
-        };
+            Err(format!("Could not parse: {}", table))
+        }?;
 
         let client = hyper::Client::with_connector(hyper::net::HttpsConnector::new(
             hyper_native_tls::NativeTlsClient::new()?,
