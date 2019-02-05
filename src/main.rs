@@ -3,12 +3,11 @@ use std::fs::File;
 use std::io::Read;
 
 use clap::{App, Arg, SubCommand};
-use slog::{o, slog_debug};
+use slog::{debug, o, Logger};
 use slog_scope;
-use slog_scope::debug;
 
-fn load_credentials(filename: &str) -> Result<String, Box<dyn Error>> {
-    debug!("using credentials file");
+fn load_credentials(logger: &Logger, filename: &str) -> Result<String, Box<dyn Error>> {
+    debug!(logger, "using credentials file");
     let mut creds_file = File::open(filename)?;
     let mut creds = String::new();
     creds_file.read_to_string(&mut creds)?;
@@ -16,15 +15,19 @@ fn load_credentials(filename: &str) -> Result<String, Box<dyn Error>> {
     Ok(creds)
 }
 
-fn process_filename(bq: &mut linehaul::BigQuery, filename: &str) -> Result<(), Box<dyn Error>> {
+fn process_filename(
+    logger: &Logger,
+    bq: &mut linehaul::BigQuery,
+    filename: &str,
+) -> Result<(), Box<dyn Error>> {
     let file = File::open(filename)?;
-    linehaul::process_reader(bq, file)?;
+    linehaul::process_reader(logger, bq, file)?;
     Ok(())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     let logger = linehaul::default_logger(linehaul::LogStyle::Readable);
-    let _guard = slog_scope::set_global_logger(logger);
+    let _guard = slog_scope::set_global_logger(logger.clone());
 
     let matches = App::new("linehaul")
         .version(linehaul::build_info::PKG_VERSION)
@@ -64,21 +67,23 @@ fn main() -> Result<(), Box<dyn Error>> {
         .value_of("bigquery-credentials")
         .unwrap()
         .to_string();
-    let creds = slog_scope::scope(
-        &slog_scope::logger().new(o!("creds-file" => creds_filename.clone())),
-        || load_credentials(&creds_filename),
+    let creds = load_credentials(
+        &logger.new(o!("creds-file" => creds_filename.clone())),
+        &creds_filename,
     )?;
 
-    // TODO: Add this to current context.
     let simple_requests_table = matches.value_of("simple-requests-table").unwrap();
+    let logger = logger.new(o!("simple_requests_table" => simple_requests_table.to_string()));
+
     let mut bq = linehaul::BigQuery::new(simple_requests_table, creds.as_ref())?;
 
     match matches.subcommand() {
         ("process", Some(matches)) => {
             let filename = matches.value_of("input").unwrap().to_string();
-            slog_scope::scope(
-                &slog_scope::logger().new(o!("file" => filename.clone())),
-                || process_filename(&mut bq, &filename),
+            process_filename(
+                &logger.new(o!("file" => filename.clone())),
+                &mut bq,
+                &filename,
             )?;
         }
         _ => Err("Must have a command name")?,

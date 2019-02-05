@@ -9,8 +9,7 @@ use hyper::status::{StatusClass, StatusCode};
 use hyper_native_tls;
 use serde::{Deserialize, Serialize};
 use serde_json as json;
-use slog::{slog_debug, slog_error};
-use slog_scope::{debug, error};
+use slog::{debug, error, Logger};
 use url;
 use uuid::Uuid;
 use yup_oauth2::{GetToken, ServiceAccountAccess, ServiceAccountKey};
@@ -188,7 +187,11 @@ impl BigQuery {
         })
     }
 
-    pub fn insert<T: Serialize>(&mut self, events: Vec<T>) -> Result<(), BigQueryError> {
+    pub fn insert<T: Serialize>(
+        &mut self,
+        logger: &Logger,
+        events: Vec<T>,
+    ) -> Result<(), BigQueryError> {
         let rows: Vec<Row> = events
             .iter()
             .map(|item| {
@@ -199,7 +202,7 @@ impl BigQuery {
             })
             .filter_map(|i: Result<Row, Box<Error>>| {
                 if let Err(e) = &i {
-                    error!("could not serialize event"; "error" => e.to_string());
+                    error!(logger, "could not serialize event"; "error" => e.to_string());
                 }
 
                 i.ok()
@@ -207,7 +210,7 @@ impl BigQuery {
             .collect();
 
         retry(|| {
-            self.do_insert(&rows).map_err(|e| {
+            self.do_insert(logger, &rows).map_err(|e| {
                 if e.retryable {
                     backoff::Error::Transient(e)
                 } else {
@@ -220,13 +223,13 @@ impl BigQuery {
             let message = e.message.clone();
             let status = e.status.and_then(|s| Some(s.to_string()));
             let body = e.body.clone();
-            error!("{}", message; "status" => status, "body" => body);
+            error!(logger, "{}", message; "status" => status, "body" => body);
 
             Err(e)
         })
     }
 
-    fn do_insert(&mut self, rows: &[Row]) -> Result<(), BigQueryError> {
+    fn do_insert(&mut self, logger: &Logger, rows: &[Row]) -> Result<(), BigQueryError> {
         let batch_size = rows.len();
         let data = TableInsertAll {
             skip_invalid_rows: Some(true),
@@ -350,7 +353,7 @@ impl BigQuery {
             }),
         }?;
 
-        debug!("inserted batch into bigquery";
+        debug!(logger, "inserted batch into bigquery";
                "batch_size" => batch_size,
                "errors" => resp.insert_errors.map_or(0, |e| e.len()));
 

@@ -13,12 +13,12 @@ extern crate nom;
 use flate2::read::GzDecoder;
 use itertools::Itertools;
 use slog;
-use slog::{o, slog_error, slog_trace, slog_warn, Drain};
+use slog::{error, o, trace, warn, Drain, Logger};
 use slog_async;
 use slog_envlogger;
-use slog_scope;
-use slog_scope::{error, trace, warn};
+use slog_scope::scope as log_scope;
 use slog_term;
+use uuid::Uuid;
 
 mod bigquery;
 mod events;
@@ -70,29 +70,29 @@ pub fn default_logger(style: LogStyle) -> slog::Logger {
     }
 }
 
-fn parse_syslog(line: &str) -> Option<syslog::SyslogMessage> {
-    match line.parse() {
+fn parse_syslog(logger: &Logger, line: &str) -> Option<syslog::SyslogMessage> {
+    match log_scope(logger, || line.parse()) {
         Ok(m) => Some(m),
         Err(_e) => {
-            error!("could not parse as syslog message");
+            error!(logger, "could not parse as syslog message");
             None
         }
     }
 }
 
-fn process_event(raw_event: &str) -> Option<events::Event> {
-    match raw_event.parse::<events::Event>() {
+fn process_event(logger: &Logger, raw_event: &str) -> Option<events::Event> {
+    match log_scope(logger, || raw_event.parse()) {
         Ok(e) => Some(e),
         Err(e) => {
             match e {
                 events::EventParseError::IgnoredUserAgent => {
-                    trace!("skipping for ignored user agent");
+                    trace!(logger, "skipping for ignored user agent");
                 }
                 events::EventParseError::InvalidUserAgent => {
-                    trace!("skipping for invalid user agent");
+                    trace!(logger, "skipping for invalid user agent");
                 }
                 events::EventParseError::Error => {
-                    error!("invalid event");
+                    error!(logger, "invalid event");
                 }
             };
 
@@ -101,24 +101,25 @@ fn process_event(raw_event: &str) -> Option<events::Event> {
     }
 }
 
-pub fn process<'a>(bq: &mut BigQuery, lines: impl Iterator<Item = &'a str>) {
-    let messages = lines.filter_map(|line| {
-        slog_scope::scope(
-            &slog_scope::logger().new(o!("line" => line.to_string())),
-            || parse_syslog(line),
-        )
-    });
-    let events = messages.filter_map(|msg| {
-        slog_scope::scope(
-            &slog_scope::logger().new(o!("raw_event" => msg.message.clone())),
-            || process_event(msg.message.as_ref()),
-        )
-    });
+pub fn process<'a>(logger: &Logger, bq: &mut BigQuery, lines: impl Iterator<Item = &'a str>) {
+    let events = lines
+        // iterate over the lines, and turn them all in pairs of (logger, parsed msg).
+        // This lets us pass the created logger into the *next* phase of the pipeline.
+        .filter_map(|line| {
+            let logger = logger.new(o!("syslog_raw" => line.to_string()));
+            parse_syslog(&logger, line).and_then(|m| Some((logger, m)))
+        })
+        // Turn each parsed syslog messge into a parsed event.
+        .filter_map(|(logger, m)| {
+            let logger = logger.new(o!("event_raw" => m.message.clone()));
+            process_event(&logger, m.message.as_ref())
+        });
 
     for batch in events.peekable().batching(|it| match it.peek() {
         Some(_i) => Some(it.take(BATCH_SIZE).collect()),
         None => None,
     }) {
+        let logger = logger.new(o!("batch_id" => Uuid::new_v4().to_string()));
         let batch: Vec<events::Event> = batch;
         let batch = batch
             .iter()
@@ -127,14 +128,17 @@ pub fn process<'a>(bq: &mut BigQuery, lines: impl Iterator<Item = &'a str>) {
             })
             .collect();
 
-        // TODO: Wrap in slog_scope.
-        if let Err(e) = bq.insert(batch) {
-            error!("error saving batch to BigQuery"; "error" => e.to_string());
+        if let Err(e) = bq.insert(&logger, batch) {
+            error!(logger, "error saving batch to BigQuery"; "error" => e.to_string());
         }
     }
 }
 
-pub fn process_reader(bq: &mut BigQuery, file: impl Read) -> Result<(), Box<dyn Error>> {
+pub fn process_reader(
+    logger: &Logger,
+    bq: &mut BigQuery,
+    file: impl Read,
+) -> Result<(), Box<dyn Error>> {
     let mut gz = GzDecoder::new(file);
     let mut buffer = Vec::new();
 
@@ -145,7 +149,7 @@ pub fn process_reader(bq: &mut BigQuery, file: impl Read) -> Result<(), Box<dyn 
         .filter_map(|line| match str::from_utf8(line) {
             Ok(l) => Some(l),
             Err(e) => {
-                warn!("skipping invalid line";
+                warn!(logger, "skipping invalid line";
                       "line" => String::from_utf8_lossy(line).as_ref(),
                       "error" => e.to_string());
                 None
@@ -153,7 +157,7 @@ pub fn process_reader(bq: &mut BigQuery, file: impl Read) -> Result<(), Box<dyn 
         })
         .filter(|i| !i.is_empty());
 
-    process(bq, lines);
+    process(logger, bq, lines);
 
     Ok(())
 }

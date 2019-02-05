@@ -11,11 +11,14 @@ use rusoto_core::Region;
 use rusoto_s3::{DeleteObjectRequest, GetObjectError, GetObjectRequest, S3Client, S3};
 use serde_json;
 use slog;
-use slog::{o, slog_error, slog_warn};
+use slog::{error, o, warn, Logger};
 use slog_scope;
-use slog_scope::{error, warn};
 
-fn process_event(bq: &mut linehaul::BigQuery, event: &S3EventRecord) -> Result<(), Box<dyn Error>> {
+fn process_event(
+    logger: &Logger,
+    bq: &mut linehaul::BigQuery,
+    event: &S3EventRecord,
+) -> Result<(), Box<dyn Error>> {
     let region = event
         .aws_region
         .as_ref()
@@ -36,75 +39,77 @@ fn process_event(bq: &mut linehaul::BigQuery, event: &S3EventRecord) -> Result<(
         .ok_or_else(|| "No Key specified.".to_owned())?
         .to_string();
 
-    slog_scope::scope(
-        &slog_scope::logger().new(o!("region" => region.name().to_string(),
+    let logger = logger.new(o!("region" => region.name().to_string(),
            "bucket" => bucket.clone(),
-           "key" => key.clone())),
-        || -> Result<(), Box<dyn Error>> {
-            // TODO: Cache our clients by region, so we don't have to constantly
-            //       reopen new connections.
-            let client = S3Client::new(region);
-            let mut op = || {
-                let output = client
-                    .get_object(GetObjectRequest {
-                        bucket: bucket.clone(),
-                        key: key.clone(),
-                        ..Default::default()
-                    })
-                    .sync()
-                    // We turn NoSuchKey into Permanent errors to skip the retry logic for them,
-                    // however all other errors will be flagged as a transient error.
-                    .map_err(|e| match &e {
-                        GetObjectError::NoSuchKey(_s) => BackoffError::Permanent(e),
-                        _ => BackoffError::Transient(e),
-                    })?;
-                Ok(output)
-            };
-            let mut backoff = ExponentialBackoff {
-                max_elapsed_time: Some(time::Duration::from_secs(60)),
+           "key" => key.clone()));
+
+    // TODO: Cache our clients by region, so we don't have to constantly
+    //       reopen new connections.
+    let client = S3Client::new(region);
+    let mut op = || {
+        let output = client
+            .get_object(GetObjectRequest {
+                bucket: bucket.clone(),
+                key: key.clone(),
                 ..Default::default()
-            };
-            let output =
-                match op.retry_notify(&mut backoff, |err: GetObjectError, dur: time::Duration| {
-                    warn!("could not fetch object from s3";
-              "duration" => format!("{:?}", dur),
-              "error" => err.to_string());
-                }) {
-                    Ok(o) => o,
-                    // This gnarly chain is here to make it so errors generally get returned,
-                    // however in the specific case of a GetObjectError::NoSuchKey, we will
-                    // act like this function was successful.
-                    Err(e) => match e {
-                        BackoffError::Permanent(e) | BackoffError::Transient(e) => match e {
-                            GetObjectError::NoSuchKey(_s) => return Ok(()),
-                            _ => return Err(Box::new(e)),
-                        },
-                    },
-                };
-
-            match output.body {
-                Some(b) => {
-                    linehaul::process_reader(bq, b.into_blocking_read())?;
-
-                    client
-                        .delete_object(DeleteObjectRequest {
-                            bucket,
-                            key,
-                            ..Default::default()
-                        })
-                        .sync()?;
-                }
-                None => {
-                    error!("no body found");
-                }
-            }
-
-            Ok(())
+            })
+            .sync()
+            // We turn NoSuchKey into Permanent errors to skip the retry logic for them,
+            // however all other errors will be flagged as a transient error.
+            .map_err(|e| match &e {
+                GetObjectError::NoSuchKey(_s) => BackoffError::Permanent(e),
+                _ => BackoffError::Transient(e),
+            })?;
+        Ok(output)
+    };
+    let mut backoff = ExponentialBackoff {
+        max_elapsed_time: Some(time::Duration::from_secs(60)),
+        ..Default::default()
+    };
+    let output = match op.retry_notify(&mut backoff, |err: GetObjectError, dur: time::Duration| {
+        warn!(logger, "could not fetch object from s3";
+                 "duration" => format!("{:?}", dur),
+                 "error" => err.to_string());
+    }) {
+        Ok(o) => o,
+        // This gnarly chain is here to make it so errors generally get returned,
+        // however in the specific case of a GetObjectError::NoSuchKey, we will
+        // act like this function was successful.
+        Err(e) => match e {
+            BackoffError::Permanent(e) | BackoffError::Transient(e) => match e {
+                GetObjectError::NoSuchKey(_s) => return Ok(()),
+                _ => return Err(Box::new(e)),
+            },
         },
-    )
+    };
+
+    match output.body {
+        Some(b) => {
+            linehaul::process_reader(&logger, bq, b.into_blocking_read())?;
+
+            if let Err(e) = client
+                .delete_object(DeleteObjectRequest {
+                    bucket,
+                    key,
+                    ..Default::default()
+                })
+                .sync()
+            {
+                error!(logger, "could not delete from s3"; "error" => e.to_string());
+            }
+        }
+        None => {
+            error!(logger, "no body found in s3");
+        }
+    };
+
+    Ok(())
 }
 
 fn handler(e: SqsEvent, _c: Context) -> Result<(), HandlerError> {
+    let logger = linehaul::default_logger(linehaul::LogStyle::JSON);
+    let _guard = slog_scope::set_global_logger(logger.clone());
+
     let matches = App::new("linehaul")
         .version(linehaul::build_info::PKG_VERSION)
         .author(linehaul::build_info::PKG_AUTHORS)
@@ -135,8 +140,10 @@ fn handler(e: SqsEvent, _c: Context) -> Result<(), HandlerError> {
         .unwrap(),
     )
     .unwrap();
-    // TODO: Add this to current context.
+
     let simple_requests_table = matches.value_of("simple-requests-table").unwrap();
+    let logger = logger.new(o!("simple_requests_table" => simple_requests_table.to_string()));
+
     let mut bq = linehaul::BigQuery::new(simple_requests_table, creds.as_ref()).unwrap();
 
     for message in &e.records {
@@ -145,15 +152,15 @@ fn handler(e: SqsEvent, _c: Context) -> Result<(), HandlerError> {
             match res {
                 Ok(e) => {
                     for event in &e.records {
-                        if let Err(e) = process_event(&mut bq, event) {
-                            error!("unable to process s3 event";
+                        if let Err(e) = process_event(&logger, &mut bq, event) {
+                            error!(logger, "unable to process s3 event";
                                    "error" => e.to_string(),
                                    "event" => serde_json::to_string(event).unwrap());
                         }
                     }
                 }
                 Err(e) => {
-                    error!("unable to parse SQS body";
+                    error!(logger, "unable to parse SQS body";
                            "error" => e.to_string(),
                            "body" => body.to_string());
                 }
@@ -165,8 +172,5 @@ fn handler(e: SqsEvent, _c: Context) -> Result<(), HandlerError> {
 }
 
 fn main() {
-    let logger = linehaul::default_logger(linehaul::LogStyle::JSON);
-    let _guard = slog_scope::set_global_logger(logger);
-
     lambda!(handler)
 }
