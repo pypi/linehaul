@@ -1,7 +1,6 @@
 use std::error::Error;
 use std::io::Read;
 
-use erased_serde;
 use hyper;
 use hyper::header::{Authorization, Bearer, ContentType};
 use hyper::mime::{Mime, SubLevel, TopLevel};
@@ -17,15 +16,15 @@ use yup_oauth2::{GetToken, ServiceAccountAccess, ServiceAccountKey};
 const BIGQUERY_URL: &str = "https://www.googleapis.com/bigquery/v2/";
 const BIGQUERY_SCOPES: [&str; 1] = ["https://www.googleapis.com/auth/bigquery"];
 
-#[derive(Serialize)]
-struct Row<'a> {
+#[derive(Clone, Serialize)]
+struct Row {
     #[serde(rename = "insertId")]
     insert_id: String,
-    json: Box<erased_serde::Serialize + 'a>,
+    json: Box<json::value::RawValue>,
 }
 
 #[derive(Serialize)]
-struct TableInsertAll<'a> {
+struct TableInsertAll {
     kind: String,
 
     #[serde(rename = "skipInvalidRows")]
@@ -37,11 +36,11 @@ struct TableInsertAll<'a> {
     #[serde(rename = "templateSuffix")]
     template_suffix: Option<String>,
 
-    rows: Option<Vec<Row<'a>>>,
+    rows: Option<Vec<Row>>,
 }
 
-impl<'a> Default for TableInsertAll<'a> {
-    fn default() -> TableInsertAll<'a> {
+impl Default for TableInsertAll {
+    fn default() -> TableInsertAll {
         TableInsertAll {
             kind: "bigquery#tableDataInsertAllRequest".to_string(),
             skip_invalid_rows: None,
@@ -123,26 +122,25 @@ impl BigQuery {
     }
 
     pub fn insert<T: Serialize>(&mut self, events: Vec<T>) -> Result<(), Box<dyn Error>> {
-        let rows = events
+        let rows: Vec<Row> = events
             .iter()
             .map(|item| Row {
                 insert_id: Uuid::new_v4().to_string(),
-                json: Box::new(item),
+                json: json::value::RawValue::from_string(json::to_string(item).unwrap()).unwrap(),
             })
             .collect();
 
-        // TODO: Insert retries.
-        self.do_insert(rows)?;
+        retry!(self.do_insert(&rows))?;
 
         Ok(())
     }
 
-    fn do_insert(&mut self, rows: Vec<Row>) -> Result<(), Box<dyn Error>> {
+    fn do_insert(&mut self, rows: &[Row]) -> Result<(), Box<dyn Error>> {
         let batch_size = rows.len();
         let data = TableInsertAll {
             skip_invalid_rows: Some(true),
             ignore_unknown_values: Some(true),
-            rows: Some(rows),
+            rows: Some(rows.to_vec()),
             ..Default::default()
         };
 

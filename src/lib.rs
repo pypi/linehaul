@@ -20,6 +20,9 @@ use slog_scope;
 use slog_scope::{error, trace, warn};
 use slog_term;
 
+#[macro_use]
+mod utils;
+
 mod bigquery;
 mod events;
 mod syslog;

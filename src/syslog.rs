@@ -80,7 +80,7 @@ impl Facility {
             21 => Ok(Facility::Local5),
             22 => Ok(Facility::Local6),
             23 => Ok(Facility::Local7),
-            _ => Err(InvalidFacility{}),
+            _ => Err(InvalidFacility {}),
         }
     }
 }
@@ -127,7 +127,7 @@ impl Severity {
             5 => Ok(Severity::Notice),
             6 => Ok(Severity::Informational),
             7 => Ok(Severity::Debug),
-            _ => Err(InvalidSeverity{}),
+            _ => Err(InvalidSeverity {}),
         }
     }
 }
