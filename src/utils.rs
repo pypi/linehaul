@@ -1,6 +1,7 @@
+use std::time::Duration;
+
 use backoff;
 use backoff::{ExponentialBackoff, Operation};
-use std::time::Duration;
 
 pub fn retry<F, T, E>(mut func: F) -> Result<T, E>
 where
