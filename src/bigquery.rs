@@ -191,9 +191,18 @@ impl BigQuery {
     pub fn insert<T: Serialize>(&mut self, events: Vec<T>) -> Result<(), BigQueryError> {
         let rows: Vec<Row> = events
             .iter()
-            .map(|item| Row {
-                insert_id: Uuid::new_v4().to_string(),
-                json: json::value::RawValue::from_string(json::to_string(item).unwrap()).unwrap(),
+            .map(|item| {
+                Ok(Row {
+                    insert_id: Uuid::new_v4().to_string(),
+                    json: json::value::RawValue::from_string(json::to_string(item)?)?,
+                })
+            })
+            .filter_map(|i: Result<Row, Box<Error>>| {
+                if let Err(e) = &i {
+                    error!("could not serialize event"; "error" => e.to_string());
+                }
+
+                i.ok()
             })
             .collect();
 
