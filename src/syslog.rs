@@ -1,49 +1,135 @@
 #![allow(clippy::double_comparisons)]
+use std::error;
+use std::fmt;
 use std::str;
 
 use chrono::{DateTime, TimeZone, Utc};
 use nom::{delimited, digit, rest, take_until, take_while_m_n};
-use num_derive::{FromPrimitive, ToPrimitive};
-use num_traits::{FromPrimitive, ToPrimitive};
 
-#[derive(Debug, FromPrimitive, ToPrimitive)]
-pub enum Facility {
-    Kernel = 0,
-    User = 1,
-    Mail = 2,
-    Daemon = 3,
-    Auth = 4,
-    Syslog = 5,
-    LPR = 6,
-    News = 7,
-    UUCP = 8,
-    Clock = 9,
-    AuthPriv = 10,
-    FTP = 11,
-    NTP = 12,
-    Audit = 13,
-    Alert = 14,
-    Cron = 15,
-    Local0 = 16,
-    Local1 = 17,
-    Local2 = 18,
-    Local3 = 19,
-    Local4 = 20,
-    Local5 = 21,
-    Local6 = 22,
-    Local7 = 23,
+#[derive(Debug, Clone)]
+pub struct InvalidFacility;
+
+impl fmt::Display for InvalidFacility {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "invalid value for Facility")
+    }
 }
 
-#[derive(Debug, FromPrimitive, ToPrimitive)]
+impl error::Error for InvalidFacility {
+    fn description(&self) -> &str {
+        "invalid value for Facility"
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        None
+    }
+}
+
+#[derive(Debug)]
+pub enum Facility {
+    Kernel,
+    User,
+    Mail,
+    Daemon,
+    Auth,
+    Syslog,
+    LPR,
+    News,
+    UUCP,
+    Clock,
+    AuthPriv,
+    FTP,
+    NTP,
+    Audit,
+    Alert,
+    Cron,
+    Local0,
+    Local1,
+    Local2,
+    Local3,
+    Local4,
+    Local5,
+    Local6,
+    Local7,
+}
+
+impl Facility {
+    pub fn from_u8(int: u8) -> Result<Facility, InvalidFacility> {
+        match int {
+            0 => Ok(Facility::Kernel),
+            1 => Ok(Facility::User),
+            2 => Ok(Facility::Mail),
+            3 => Ok(Facility::Daemon),
+            4 => Ok(Facility::Auth),
+            5 => Ok(Facility::Syslog),
+            6 => Ok(Facility::LPR),
+            7 => Ok(Facility::News),
+            8 => Ok(Facility::UUCP),
+            9 => Ok(Facility::Clock),
+            10 => Ok(Facility::AuthPriv),
+            11 => Ok(Facility::FTP),
+            12 => Ok(Facility::NTP),
+            13 => Ok(Facility::Audit),
+            14 => Ok(Facility::Alert),
+            15 => Ok(Facility::Cron),
+            16 => Ok(Facility::Local0),
+            17 => Ok(Facility::Local1),
+            18 => Ok(Facility::Local2),
+            19 => Ok(Facility::Local3),
+            20 => Ok(Facility::Local4),
+            21 => Ok(Facility::Local5),
+            22 => Ok(Facility::Local6),
+            23 => Ok(Facility::Local7),
+            _ => Err(InvalidFacility{}),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct InvalidSeverity;
+
+impl fmt::Display for InvalidSeverity {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "invalid value for Severity")
+    }
+}
+
+impl error::Error for InvalidSeverity {
+    fn description(&self) -> &str {
+        "invalid value for Severity"
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        None
+    }
+}
+
+#[derive(Debug)]
 pub enum Severity {
-    Emergency = 0,
-    Alert = 1,
-    Critical = 2,
-    Error = 3,
-    Warning = 4,
-    Notice = 5,
-    Informational = 6,
-    Debug = 7,
+    Emergency,
+    Alert,
+    Critical,
+    Error,
+    Warning,
+    Notice,
+    Informational,
+    Debug,
+}
+
+impl Severity {
+    pub fn from_u8(int: u8) -> Result<Severity, InvalidSeverity> {
+        match int {
+            0 => Ok(Severity::Emergency),
+            1 => Ok(Severity::Alert),
+            2 => Ok(Severity::Critical),
+            3 => Ok(Severity::Error),
+            4 => Ok(Severity::Warning),
+            5 => Ok(Severity::Notice),
+            6 => Ok(Severity::Informational),
+            7 => Ok(Severity::Debug),
+            _ => Err(InvalidSeverity{}),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -128,8 +214,8 @@ named!(parse <&str, SyslogMessage>,
     >>            tag!(": ")
     >> message:   complete!(rest)
     >> ({
-            let facility: Facility = FromPrimitive::from_u8(priority / 8).unwrap();
-            let severity: Severity = FromPrimitive::from_u8(priority - (ToPrimitive::to_u8(&facility).unwrap() * 8)).unwrap();
+            let facility = Facility::from_u8(priority / 8).unwrap();
+            let severity = Severity::from_u8(priority - ((priority / 8) * 8)).unwrap();
             let hostname = match hostname {
                 Some(h) => Some(h.to_string()),
                 None => None,
