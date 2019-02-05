@@ -233,7 +233,13 @@ impl BigQuery {
         let url = self.base_url.join(url_path.as_ref()).unwrap();
         let body = json::to_string(&data).unwrap();
 
-        let token = self.auth.token(&BIGQUERY_SCOPES).unwrap();
+        let token = self
+            .auth
+            .token(&BIGQUERY_SCOPES)
+            .map_err(|e| BigQueryError {
+                message: format!("error fetching token: {}", e.to_string()),
+                ..Default::default()
+            })?;
         let mut resp = self
             .client
             .post(url)
