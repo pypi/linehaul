@@ -13,6 +13,8 @@ use url;
 use uuid::Uuid;
 use yup_oauth2::{GetToken, ServiceAccountAccess, ServiceAccountKey};
 
+use super::utils::retry;
+
 const BIGQUERY_URL: &str = "https://www.googleapis.com/bigquery/v2/";
 const BIGQUERY_SCOPES: [&str; 1] = ["https://www.googleapis.com/auth/bigquery"];
 
@@ -130,7 +132,7 @@ impl BigQuery {
             })
             .collect();
 
-        retry!(self.do_insert(&rows))?;
+        retry(|| self.do_insert(&rows))?;
 
         Ok(())
     }
