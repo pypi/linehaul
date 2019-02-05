@@ -19,21 +19,21 @@ fn process_event(bq: &mut linehaul::BigQuery, event: &S3EventRecord) -> Result<(
     let region = event
         .aws_region
         .as_ref()
-        .ok_or("No region specified.".to_owned())?
+        .ok_or_else(|| "No region specified.".to_owned())?
         .parse::<Region>()?;
     let bucket = event
         .s3
         .bucket
         .name
         .as_ref()
-        .ok_or("No bucket specified.".to_owned())?
+        .ok_or_else(|| "No bucket specified.".to_owned())?
         .to_string();
     let key = event
         .s3
         .object
         .key
         .as_ref()
-        .ok_or("No Key specified.".to_owned())?
+        .ok_or_else(|| "No Key specified.".to_owned())?
         .to_string();
 
     slog_scope::scope(
