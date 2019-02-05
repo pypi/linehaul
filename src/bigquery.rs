@@ -1,14 +1,16 @@
 use std::error::Error;
+use std::fmt;
 use std::io::Read;
 
 use hyper;
 use hyper::header::{Authorization, Bearer, ContentType};
 use hyper::mime::{Mime, SubLevel, TopLevel};
+use hyper::status::{StatusClass, StatusCode};
 use hyper_native_tls;
 use serde::{Deserialize, Serialize};
 use serde_json as json;
-use slog::{slog_debug, slog_warn};
-use slog_scope::{debug, warn};
+use slog::{slog_debug, slog_error};
+use slog_scope::{debug, error};
 use url;
 use uuid::Uuid;
 use yup_oauth2::{GetToken, ServiceAccountAccess, ServiceAccountKey};
@@ -17,6 +19,26 @@ use super::utils::retry;
 
 const BIGQUERY_URL: &str = "https://www.googleapis.com/bigquery/v2/";
 const BIGQUERY_SCOPES: [&str; 1] = ["https://www.googleapis.com/auth/bigquery"];
+
+macro_rules! read_body {
+    ($resp:ident, retryable => $retryable:expr) => {{
+        let mut body = String::new();
+        let result = $resp.read_to_string(&mut body).map_err(|_e| BigQueryError {
+            message: "IO error reading response body".to_string(),
+            status: $resp.status,
+            body: None,
+            retryable: $retryable,
+        });
+
+        match result {
+            Ok(_r) => Ok(body),
+            Err(e) => Err(e),
+        }
+    }};
+    ($resp:ident) => {
+        read_body!($resp, retryable => true)
+    };
+}
 
 #[derive(Clone, Serialize)]
 struct Row {
@@ -76,6 +98,38 @@ struct TableInsertResponse {
     insert_errors: Option<Vec<TableInsertError>>,
 }
 
+#[derive(Debug, Clone)]
+pub struct BigQueryError {
+    pub message: String,
+    pub status: StatusCode,
+    pub body: Option<String>,
+    retryable: bool,
+}
+
+impl fmt::Display for BigQueryError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl Error for BigQueryError {
+    fn description(&self) -> &str {
+        "an error communicating with BigQuery"
+    }
+
+    fn cause(&self) -> Option<&Error> {
+        None
+    }
+}
+
+impl From<backoff::Error<BigQueryError>> for BigQueryError {
+    fn from(e: backoff::Error<BigQueryError>) -> Self {
+        match e {
+            backoff::Error::Permanent(e) | backoff::Error::Transient(e) => e,
+        }
+    }
+}
+
 struct BigQueryTable {
     project: String,
     dataset: String,
@@ -123,7 +177,7 @@ impl BigQuery {
         })
     }
 
-    pub fn insert<T: Serialize>(&mut self, events: Vec<T>) -> Result<(), Box<dyn Error>> {
+    pub fn insert<T: Serialize>(&mut self, events: Vec<T>) -> Result<(), BigQueryError> {
         let rows: Vec<Row> = events
             .iter()
             .map(|item| Row {
@@ -132,12 +186,27 @@ impl BigQuery {
             })
             .collect();
 
-        retry(|| self.do_insert(&rows))?;
+        retry(|| {
+            self.do_insert(&rows).map_err(|e| {
+                if e.retryable {
+                    backoff::Error::Transient(e)
+                } else {
+                    backoff::Error::Permanent(e)
+                }
+            })
+        })
+        .map_err(BigQueryError::from)
+        .or_else(|e| {
+            let message = e.message.clone();
+            let status = e.status.to_string();
+            let body = e.body.clone();
+            error!("{}", message; "status" => status, "body" => body);
 
-        Ok(())
+            Err(e)
+        })
     }
 
-    fn do_insert(&mut self, rows: &[Row]) -> Result<(), Box<dyn Error>> {
+    fn do_insert(&mut self, rows: &[Row]) -> Result<(), BigQueryError> {
         let batch_size = rows.len();
         let data = TableInsertAll {
             skip_invalid_rows: Some(true),
@@ -153,7 +222,7 @@ impl BigQuery {
         let url = self.base_url.join(url_path.as_ref()).unwrap();
         let body = json::to_string(&data).unwrap();
 
-        let token = self.auth.token(&BIGQUERY_SCOPES)?;
+        let token = self.auth.token(&BIGQUERY_SCOPES).unwrap();
         let mut resp = match self
             .client
             .post(url)
@@ -177,23 +246,55 @@ impl BigQuery {
             },
         };
 
-        let resp = match resp.status {
-            hyper::status::StatusCode::Ok => {
-                let mut body = String::new();
-                match resp.read_to_string(&mut body) {
-                    Ok(_o) => {}
-                    Err(_e) => panic!("Another?"),
-                };
-                match json::from_str::<TableInsertResponse>(&body) {
-                    Ok(p) => p,
-                    Err(_e) => panic!("wat!"),
-                }
-            }
-            _ => {
-                warn!("unexpected status code from BigQuery"; "status_code" => resp.status.to_string());
-                panic!("five");
-            }
-        };
+        let resp = match resp.status.class() {
+            StatusClass::Informational => Err(BigQueryError {
+                message: "unexpected 1xx response".to_string(),
+                status: resp.status,
+                body: read_body!(resp).ok(),
+                retryable: true,
+            }),
+            StatusClass::Success => match read_body!(resp) {
+                Ok(body) => match json::from_str::<TableInsertResponse>(&body) {
+                    Ok(p) => Ok(p),
+                    Err(_e) => Err(BigQueryError {
+                        message: "invalid json response".to_string(),
+                        status: resp.status,
+                        body: Some(body),
+                        retryable: true,
+                    }),
+                },
+                _ => Err(BigQueryError {
+                    message: "invalid response body".to_string(),
+                    status: resp.status,
+                    body: None,
+                    retryable: true,
+                }),
+            },
+            StatusClass::Redirection => Err(BigQueryError {
+                message: "unexpected redirect".to_string(),
+                status: resp.status,
+                body: read_body!(resp).ok(),
+                retryable: false,
+            }),
+            StatusClass::ClientError => Err(BigQueryError {
+                message: "client error".to_string(),
+                status: resp.status,
+                body: read_body!(resp).ok(),
+                retryable: false,
+            }),
+            StatusClass::ServerError => Err(BigQueryError {
+                message: "server error".to_string(),
+                status: resp.status,
+                body: read_body!(resp).ok(),
+                retryable: true,
+            }),
+            StatusClass::NoClass => Err(BigQueryError {
+                message: "unknown status code".to_string(),
+                status: resp.status,
+                body: read_body!(resp).ok(),
+                retryable: true,
+            }),
+        }?;
 
         debug!("inserted batch into bigquery";
                "batch_size" => batch_size,
