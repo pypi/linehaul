@@ -1,3 +1,4 @@
+#![allow(clippy::double_comparisons)]
 use std::str;
 
 use chrono::{DateTime, TimeZone, Utc};

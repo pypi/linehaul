@@ -1,3 +1,4 @@
+#![allow(clippy::double_comparisons)]
 use chrono::{DateTime, TimeZone, Utc};
 use nom::{rest, space, take_until, take_while_m_n, Context, Err as NomErr, ErrorKind};
 use serde::{Deserialize, Serialize};
@@ -18,7 +19,7 @@ pub struct SimpleRequest {
 named!(nulll_str <&str, Option<&str>>, do_parse!(tag!("-") >> (None)));
 
 named!(optional_str <&str, Option<&str>>,
-    map!(take_until!("|"), |i| Some(i))
+    map!(take_until!("|"), Some)
 );
 
 named!(two_digit_date_part <&str, u32>,

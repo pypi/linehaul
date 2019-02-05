@@ -1,3 +1,5 @@
+#![allow(clippy::needless_update)]
+#![allow(clippy::trivial_regex)]
 use std::error;
 use std::fmt;
 
