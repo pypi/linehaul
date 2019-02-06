@@ -12,7 +12,7 @@ use serde_json as json;
 use slog::{debug, error, Logger};
 use url;
 use uuid::Uuid;
-use yup_oauth2::{GetToken, ServiceAccountAccess, ServiceAccountKey};
+use yup_oauth2::{GetToken, ServiceAccountAccess, Token};
 
 use super::utils::retry;
 
@@ -140,6 +140,7 @@ impl From<backoff::Error<BigQueryError>> for BigQueryError {
     }
 }
 
+#[derive(Clone, Serialize)]
 struct BigQueryTable {
     project: String,
     dataset: String,
@@ -148,61 +149,87 @@ struct BigQueryTable {
 
 pub struct BigQuery {
     table: BigQueryTable,
-    auth: ServiceAccountAccess<hyper::Client>,
-    client: hyper::Client,
+    key: String,
     base_url: url::Url,
+
+    auth: Option<ServiceAccountAccess<hyper::Client>>,
+    client: Option<hyper::Client>,
+}
+
+impl Clone for BigQuery {
+    fn clone(&self) -> BigQuery {
+        BigQuery {
+            table: self.table.clone(),
+            key: self.key.clone(),
+            base_url: self.base_url.clone(),
+            auth: None,
+            client: None,
+        }
+    }
 }
 
 impl BigQuery {
-    pub fn new(table: &str, key: &str) -> Result<BigQuery, Box<dyn Error>> {
+    pub fn new(table: &str, key: &str) -> BigQuery {
         let split = table.split('.').collect::<Vec<&str>>();
         let table = if let [project, dataset, table] = &split[..] {
-            Ok(BigQueryTable {
+            BigQueryTable {
                 project: project.to_string(),
                 dataset: dataset.to_string(),
                 table: table.to_string(),
-            })
+            }
         } else {
-            Err(format!("Could not parse: {}", table))
-        }?;
+            panic!("Invalid table parameters.");
+        };
 
-        let client = hyper::Client::with_connector(hyper::net::HttpsConnector::new(
-            hyper_native_tls::NativeTlsClient::new()?,
-        ));
-        let secret: ServiceAccountKey = json::from_str(key)?;
-        let auth = ServiceAccountAccess::new(
-            secret,
-            hyper::Client::with_connector(hyper::net::HttpsConnector::new(
-                hyper_native_tls::NativeTlsClient::new()?,
-            )),
-        );
+        let base_url = url::Url::parse(BIGQUERY_URL).unwrap();
 
-        let base_url = url::Url::parse(BIGQUERY_URL)?;
-
-        Ok(BigQuery {
+        BigQuery {
             table,
-            auth,
-            client,
             base_url,
+            key: key.to_string(),
+            auth: None,
+            client: None,
+        }
+    }
+
+    fn token(&mut self) -> Result<Token, BigQueryError> {
+        let key = self.key.as_ref();
+        self.auth
+            .get_or_insert_with(|| {
+                ServiceAccountAccess::new(
+                    json::from_str(key).unwrap(),
+                    hyper::Client::with_connector(hyper::net::HttpsConnector::new(
+                        hyper_native_tls::NativeTlsClient::new().unwrap(),
+                    )),
+                )
+            })
+            .token(&BIGQUERY_SCOPES)
+            .map_err(|e| BigQueryError {
+                message: format!("error fetching token: {}", e.to_string()),
+                ..Default::default()
+            })
+    }
+
+    fn client(&mut self) -> &hyper::Client {
+        self.client.get_or_insert_with(|| {
+            hyper::Client::with_connector(hyper::net::HttpsConnector::new(
+                hyper_native_tls::NativeTlsClient::new().unwrap(),
+            ))
         })
     }
 
-    pub fn insert<T: Serialize>(
-        &mut self,
-        logger: &Logger,
-        events: Vec<T>,
-    ) -> Result<(), BigQueryError> {
+    pub fn insert(&mut self, logger: &Logger, events: &[String]) -> Result<(), BigQueryError> {
         let rows: Vec<Row> = events
             .iter()
             .map(|item| {
                 Ok(Row {
                     insert_id: Uuid::new_v4().to_string(),
-                    json: json::value::RawValue::from_string(json::to_string(item)?)?,
+                    json: json::value::RawValue::from_string(item.to_string())?,
                 })
             })
             .filter_map(|i: Result<Row, Box<Error>>| {
                 if let Err(e) = &i {
-                    error!(logger, "could not serialize event"; "error" => e.to_string());
+                    error!(logger, "could not store event"; "error" => e.to_string());
                 }
 
                 i.ok()
@@ -245,15 +272,9 @@ impl BigQuery {
         let url = self.base_url.join(url_path.as_ref()).unwrap();
         let body = json::to_string(&data).unwrap();
 
-        let token = self
-            .auth
-            .token(&BIGQUERY_SCOPES)
-            .map_err(|e| BigQueryError {
-                message: format!("error fetching token: {}", e.to_string()),
-                ..Default::default()
-            })?;
+        let token = self.token()?;
         let mut resp = self
-            .client
+            .client()
             .post(url)
             .header(Authorization(Bearer {
                 token: token.access_token,

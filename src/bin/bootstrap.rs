@@ -144,7 +144,7 @@ fn handler(e: SqsEvent, _c: Context) -> Result<(), HandlerError> {
     let simple_requests_table = matches.value_of("simple-requests-table").unwrap();
     let logger = logger.new(o!("simple_requests_table" => simple_requests_table.to_string()));
 
-    let mut bq = linehaul::BigQuery::new(simple_requests_table, creds.as_ref()).unwrap();
+    let mut bq = linehaul::BigQuery::new(simple_requests_table, creds.as_ref());
 
     for message in &e.records {
         if let Some(body) = &message.body {

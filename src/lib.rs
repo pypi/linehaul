@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::env;
 use std::error::Error;
 use std::io;
@@ -11,7 +12,9 @@ extern crate lazy_static;
 extern crate nom;
 
 use flate2::read::GzDecoder;
-use itertools::Itertools;
+use rayon;
+use rayon::prelude::*;
+use serde_json as json;
 use slog;
 use slog::{error, o, trace, warn, Drain, Logger};
 use slog_async;
@@ -101,36 +104,57 @@ fn process_event(logger: &Logger, raw_event: &str) -> Option<events::Event> {
     }
 }
 
-pub fn process<'a>(logger: &Logger, bq: &mut BigQuery, lines: impl Iterator<Item = &'a str>) {
-    let events = lines
-        // iterate over the lines, and turn them all in pairs of (logger, parsed msg).
-        // This lets us pass the created logger into the *next* phase of the pipeline.
-        .filter_map(|line| {
+pub fn process<'a>(logger: &Logger, bq: &mut BigQuery, lines: Vec<&str>) {
+    let events: Vec<(&str, String)> = lines
+        .par_iter()
+        // iterate over the lines, and turn them all in parsed syslog events, filtering
+        // out anything that we couldn't turn into a syslog event.
+        .map_with(logger, |logger, line| {
             let logger = logger.new(o!("syslog_raw" => line.to_string()));
-            parse_syslog(&logger, line).and_then(|m| Some((logger, m)))
+            parse_syslog(&logger, line)
         })
-        // Turn each parsed syslog messge into a parsed event.
-        .filter_map(|(logger, m)| {
+        .filter_map(|m| m)
+        // Turn each parsed syslog messge into a parsed event, filtering out anything
+        // we couldnt parse.
+        .map_with(logger, |logger, m| {
             let logger = logger.new(o!("event_raw" => m.message.clone()));
             process_event(&logger, m.message.as_ref())
-        });
+        })
+        .filter_map(|m| m)
+        // Turn all of our events into a tuple of (event key, serialized).
+        .map_with(logger, |logger, event| {
+            let serialized = match event {
+                events::Event::SimpleRequest(e) => {
+                    json::to_string(&e).map(|j| ("simple_request", j))
+                }
+            };
 
-    for batch in events.peekable().batching(|it| match it.peek() {
-        Some(_i) => Some(it.take(BATCH_SIZE).collect()),
-        None => None,
-    }) {
-        let logger = logger.new(o!("batch_id" => Uuid::new_v4().to_string()));
-        let batch: Vec<events::Event> = batch;
-        let batch = batch
-            .iter()
-            .map(|i| match i {
-                events::Event::SimpleRequest(e) => e,
+            if let Err(e) = &serialized {
+                error!(logger.clone(), "could not serialize event"; "error" => e.to_string());
+            }
+
+            serialized.ok()
+        })
+        .filter_map(|ev| ev)
+        // Collect all of our lines into our exitting vector.
+        .collect();
+
+    let mut grouped = HashMap::new();
+    for (key, serialized) in events {
+        grouped.entry(key).or_insert_with(Vec::new).push(serialized);
+    }
+
+    for (_key, events) in grouped {
+        // TODO: Actually map up keys with a target table.
+        // events.par_chunks(BATCH_SIZE).for_each_with(logger, |logger, batch| {
+        events
+            .par_chunks(BATCH_SIZE)
+            .for_each_with((logger, bq.clone()), |(logger, bq), batch| {
+                let logger = logger.new(o!("batch_id" => Uuid::new_v4().to_string()));
+                if let Err(e) = bq.insert(&logger, batch) {
+                    error!(logger, "error saving to BigQuery"; "error" => e.to_string());
+                }
             })
-            .collect();
-
-        if let Err(e) = bq.insert(&logger, batch) {
-            error!(logger, "error saving batch to BigQuery"; "error" => e.to_string());
-        }
     }
 }
 
@@ -155,7 +179,8 @@ pub fn process_reader(
                 None
             }
         })
-        .filter(|i| !i.is_empty());
+        .filter(|i| !i.is_empty())
+        .collect();
 
     process(logger, bq, lines);
 
