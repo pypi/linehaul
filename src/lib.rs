@@ -104,7 +104,7 @@ fn process_event(logger: &Logger, raw_event: &str) -> Option<events::Event> {
     }
 }
 
-pub fn process<'a>(logger: &Logger, bq: &mut BigQuery, lines: Vec<&str>) {
+pub fn process(logger: &Logger, bq: &mut BigQuery, lines: Vec<&str>) {
     let events: Vec<(&str, String)> = lines
         .par_iter()
         // iterate over the lines, and turn them all in parsed syslog events, filtering
