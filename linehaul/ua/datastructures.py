@@ -63,3 +63,4 @@ class UserAgent:
     cpu = attr.ib(type=Optional[str], default=None)
     openssl_version = attr.ib(type=Optional[str], default=None)
     setuptools_version = attr.ib(type=Optional[str], default=None)
+    ci = attr.ib(type=Optional[bool], defualt=None)
