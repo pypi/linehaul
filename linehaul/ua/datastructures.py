@@ -56,6 +56,7 @@ class System:
 class UserAgent:
 
     installer = attr.ib(type=Optional[Installer], default=None)
+    wrapper = attr.ib(type=Optional[Installer], default=None)
     python = attr.ib(type=Optional[str], default=None)
     implementation = attr.ib(type=Optional[Implementation], default=None)
     distro = attr.ib(type=Optional[Distro], default=None)
