@@ -1,29 +1,26 @@
-arrow==0.12.1
-asks==2.0.0
-asn1crypto==0.24.0        # via cryptography
+arrow==0.12.1             # via -r main.in
+asks==2.0.0               # via -r main.in
 async-generator==1.9      # via asks, trio
-attrs==18.1.0
-cattrs==0.8.1
+attrs==18.1.0             # via -r main.in, cattrs, outcome, trio
+cattrs==0.8.1             # via -r main.in
 cffi==1.11.5              # via cryptography
-click==6.7
-contextvars==2.2          # via trio
-cryptography==2.3
+click==6.7                # via -r main.in
+cryptography==3.2         # via -r main.in
 h11==0.8.1                # via asks
-idna==2.7                 # via cryptography, trio
-immutables==0.5           # via contextvars
-importlib-resources==1.0.1
+idna==2.7                 # via trio
+importlib-resources==1.0.1  # via -r main.in
 multio==0.2.3             # via asks
-oauthlib==2.1.0
+oauthlib==2.1.0           # via -r main.in
 outcome==0.1.0            # via trio
-packaging==17.1
+packaging==17.1           # via -r main.in
 pycparser==2.18           # via cffi
-pyjwt==1.6.4
-pyparsing==2.2.0
+pyjwt==1.6.4              # via -r main.in
+pyparsing==2.2.0          # via -r main.in, packaging
 python-dateutil==2.7.3    # via arrow
 six==1.11.0               # via cryptography, packaging, python-dateutil, tenacity
 sortedcontainers==2.0.4   # via trio
-tenacity==4.12.0
-trio==0.5.0
+tenacity==4.12.0          # via -r main.in
+trio==0.5.0               # via -r main.in
 wheel==0.31.1             # via importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
