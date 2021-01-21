@@ -15,7 +15,7 @@ setup(
         "version_scheme": lambda v: "3.{.distance}.0".format(v),
     },
     packages=find_packages(exclude=["tests*"]),
-    package_data={"linehaul": ["schema.json"]},
+    package_data={"linehaul.schema": ["*.json"]},
     entry_points={"console_scripts": ["linehaul = linehaul.cli:cli"]},
     install_requires=install_requires,
     setup_requires=["setuptools_scm"],
