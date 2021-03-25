@@ -1,11 +1,30 @@
-atomicwrites==1.1.5       # via pytest
-attrs==18.1.0             # via hypothesis, pytest
-coverage==4.5.1           # via hypothesis, pytest-cov
+atomicwrites==1.1.5
+    # via pytest
+attrs==18.1.0
+    # via
+    #   hypothesis
+    #   pytest
+coverage==4.5.1
+    # via
+    #   hypothesis
+    #   pytest-cov
 hypothesis==3.66.4
-more-itertools==4.2.0     # via pytest
-pluggy==0.6.0             # via pytest
-py==1.5.4                 # via pytest
+    # via -r tests.in
+more-itertools==4.2.0
+    # via pytest
+pluggy==0.6.0
+    # via pytest
+py==1.5.4
+    # via pytest
 pytest-cov==2.5.1
+    # via -r tests.in
 pytest==3.6.3
-pyyaml==5.1
-six==1.11.0               # via more-itertools, pytest
+    # via
+    #   -r tests.in
+    #   pytest-cov
+pyyaml==5.4
+    # via -r tests.in
+six==1.11.0
+    # via
+    #   more-itertools
+    #   pytest
